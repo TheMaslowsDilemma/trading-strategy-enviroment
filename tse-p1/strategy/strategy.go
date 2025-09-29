@@ -1,1 +1,10 @@
 package strategy
+
+import (
+	"tse-p1/market"
+	"tse-p1/candles"
+)
+
+type Strategy interface {
+	Decide(candles []candles.Candle, currentIndex int) market.Action
+}

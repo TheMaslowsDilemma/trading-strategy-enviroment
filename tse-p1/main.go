@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 	"tse-p1/candles"
+	"tse-p1/simulation"
+	"tse-p1/strategy"
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 )
@@ -25,17 +27,31 @@ func main() {
 		panic(err)
 	}
 
-	var items []opts.LineData
+	strategy := &strategy.SimpleMAStrategy{ShortPeriod: 500, LongPeriod: 5000}
+	sim := simulation.NewSimulator(1000.0, strategy, 0.015)
+	networth_history := sim.Run(candles)
+
+	var price_points []opts.LineData
+	var netw_points []opts.LineData
 	x := 0
-	for i := 0; i < 1800000; i++ {
+
+	netwlen := len(networth_history) - 1
+	for i := 0; i < len(candles) - 1; i++ {
 		if i % 1000 == 0 {
-			items = append(items, opts.LineData{Value: []interface{}{x, candles[i].Close}})
+			price_points = append(price_points, opts.LineData{Value: []interface{}{x, candles[i].Close}})
+
+			if i < netwlen {
+				netw_points = append(netw_points, opts.LineData{Value: []interface{}{x, networth_history[i]}})
+			}
+
 			x += 1
+
 		}
 	}
 
 	linegraph := charts.NewLine()
-	linegraph.AddSeries("Close Price", items)
+	linegraph.AddSeries("Close Price", price_points)
+	linegraph.AddSeries("Bot Networth", netw_points)
 
 	f, err := os.Create("linegraph.html")
 	if err != nil {
