@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"tse-p1/candles"
 	"tse-p1/simulation"
@@ -51,10 +52,10 @@ func main() {
 
 	//--- Graphing Setup --- //
 	linegraph := charts.NewLine()
-	linegraph.AddSeries("Close Price", ps_ld)
-	linegraph.AddSeries("Bot Networth", nw_ld)
+	linegraph.AddSeries("eth close price", ps_ld)
+	linegraph.AddSeries(fmt.Sprintf("%s net worth", strat.GetName()), nw_ld)
 	linegraph.SetGlobalOptions(
-		charts.WithTitleOpts(opts.Title{Title: "Trading Strategy Performance", Subtitle: "Trading against historical ETH."}),
+		charts.WithTitleOpts(opts.Title{Title: "Trading Strategy Performance", Subtitle: "initial balance of 1000 usd"}),
 	)
 
 	f, err := os.Create("linegraph.html")

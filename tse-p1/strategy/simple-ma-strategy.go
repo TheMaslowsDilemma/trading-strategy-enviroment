@@ -22,17 +22,21 @@ func (s *SimpleMAStrategy) Decide(candles []candles.Candle, currentIndex int) (m
 	shortMA := calculateMA(candles, currentIndex, s.ShortPeriod)
 	longMA := calculateMA(candles, currentIndex, s.LongPeriod)
 
-	prevShortMA := calculateMA(candles, currentIndex-1, s.ShortPeriod)
-	prevLongMA := calculateMA(candles, currentIndex-1, s.LongPeriod)
+	prevShortMA := calculateMA(candles, currentIndex - 1, s.ShortPeriod)
+	prevLongMA := calculateMA(candles, currentIndex - 1, s.LongPeriod)
 
 
 	if prevShortMA <= prevLongMA && shortMA > longMA {
-		return market.Sell, 1 // Crossover up
+		return market.Buy, 1 // Crossover up
 	}
 	if prevShortMA >= prevLongMA && shortMA < longMA {
-		return market.Buy, 1 // Crossover down
+		return market.Sell, 1 // Crossover down
 	}
 	return market.Hold, 1
+}
+
+func (s *SimpleMAStrategy) GetName() string {
+	return "SimpleMAStrategy"
 }
 
 func calculateMA(candles []candles.Candle, currentIndex, period int) float64 {
