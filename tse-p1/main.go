@@ -9,8 +9,8 @@ import (
 	"github.com/go-echarts/go-echarts/v2/opts"
 )
 
-const EthereumCSVPath = "../market-data/ETH_1min.csv"
 var EthereumCSVDescriptor = candles.CandlesCsvDescriptor {
+	Filepath: 		"../market-data/ETH_1min.csv",
 	TimestampIndex: 1,
 	OpenIndex:      3,
 	HighIndex:      4,
@@ -22,36 +22,40 @@ var EthereumCSVDescriptor = candles.CandlesCsvDescriptor {
 }
 
 func main() {
-	candles, err := candles.LoadCandlesFromCsv(EthereumCSVPath, EthereumCSVDescriptor)
+	cs, err := candles.LoadCandlesFromCsv(EthereumCSVDescriptor)
 	if err != nil {
 		panic(err)
 	}
 
-	strategy := &strategy.SimpleMAStrategy{ShortPeriod: 500, LongPeriod: 5000}
-	sim := simulation.NewSimulator(1000.0, strategy, 0.015)
-	networth_history := sim.Run(candles)
+	strat := &strategy.SimpleMAStrategy{ShortPeriod: 800, LongPeriod: 5000}
+	sim := simulation.NewSimulator(1000.0, strat, 0.02)
+	ns := sim.Run(cs) // networth history of the bot
 
-	var price_points []opts.LineData
-	var netw_points []opts.LineData
+	var ps_ld []opts.LineData
+	var nw_ld []opts.LineData
+
 	x := 0
+	nsmax := len(ns) - 1
+	csmax := len(cs) - 1
 
-	netwlen := len(networth_history) - 1
-	for i := 0; i < len(candles) - 1; i++ {
+	for i := 0; i < csmax; i++ {
 		if i % 1000 == 0 {
-			price_points = append(price_points, opts.LineData{Value: []interface{}{x, candles[i].Close}})
-
-			if i < netwlen {
-				netw_points = append(netw_points, opts.LineData{Value: []interface{}{x, networth_history[i]}})
+			ps_ld = append(ps_ld, opts.LineData{Value: []interface{}{x, cs[i].Close}})
+			if i < nsmax {
+				nw_ld = append(nw_ld, opts.LineData{Value: []interface{}{x, ns[i]}})
 			}
 
 			x += 1
-
 		}
 	}
 
+	//--- Graphing Setup --- //
 	linegraph := charts.NewLine()
-	linegraph.AddSeries("Close Price", price_points)
-	linegraph.AddSeries("Bot Networth", netw_points)
+	linegraph.AddSeries("Close Price", ps_ld)
+	linegraph.AddSeries("Bot Networth", nw_ld)
+	linegraph.SetGlobalOptions(
+		charts.WithTitleOpts(opts.Title{Title: "Trading Strategy Performance", Subtitle: "Trading against historical ETH."}),
+	)
 
 	f, err := os.Create("linegraph.html")
 	if err != nil {

@@ -14,6 +14,7 @@ const (
 )
 
 type CandlesCsvDescriptor struct {
+	Filepath string
 	TimestampIndex int
 	OpenIndex int
 	HighIndex int
@@ -31,7 +32,7 @@ func panicCheck(e error) {
 }
 
 // TODO: consider logging failed rows etc.
-func LoadCandlesFromCsv(fp string, dsc CandlesCsvDescriptor) ([]Candle, error) {
+func LoadCandlesFromCsv(dsc CandlesCsvDescriptor) ([]Candle, error) {
 	var (
 		f *os.File
 		rdr *csv.Reader
@@ -43,7 +44,7 @@ func LoadCandlesFromCsv(fp string, dsc CandlesCsvDescriptor) ([]Candle, error) {
 		err error
 	)
 
-	f, err = os.Open(fp)
+	f, err = os.Open(dsc.Filepath)
 	panicCheck(err)
 	defer f.Close()
 

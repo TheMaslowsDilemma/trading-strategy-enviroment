@@ -6,5 +6,5 @@ import (
 )
 
 type Strategy interface {
-	Decide(candles []candles.Candle, currentIndex int) market.Action
+	Decide(candles []candles.Candle, currentIndex int) (market.Action, float64)
 }

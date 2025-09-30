@@ -10,9 +10,13 @@ type SimpleMAStrategy struct {
 	LongPeriod  int
 }
 
-func (s *SimpleMAStrategy) Decide(candles []candles.Candle, currentIndex int) market.Action {
+/**
+ *  returns an action {buy, sell, hold} and
+ * 	a confidence [0,1] which is basically how much
+**/
+func (s *SimpleMAStrategy) Decide(candles []candles.Candle, currentIndex int) (market.Action, float64) {
 	if currentIndex < s.LongPeriod {
-		return market.Hold // Not enough data yet
+		return market.Hold, 1 // Not enough data yet
 	}
 
 	shortMA := calculateMA(candles, currentIndex, s.ShortPeriod)
@@ -21,13 +25,14 @@ func (s *SimpleMAStrategy) Decide(candles []candles.Candle, currentIndex int) ma
 	prevShortMA := calculateMA(candles, currentIndex-1, s.ShortPeriod)
 	prevLongMA := calculateMA(candles, currentIndex-1, s.LongPeriod)
 
+
 	if prevShortMA <= prevLongMA && shortMA > longMA {
-		return market.Buy // Crossover up
+		return market.Sell, 1 // Crossover up
 	}
 	if prevShortMA >= prevLongMA && shortMA < longMA {
-		return market.Sell // Crossover down
+		return market.Buy, 1 // Crossover down
 	}
-	return market.Hold
+	return market.Hold, 1
 }
 
 func calculateMA(candles []candles.Candle, currentIndex, period int) float64 {

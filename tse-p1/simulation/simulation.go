@@ -28,6 +28,7 @@ func NewSimulator(initialBalance float64, strategy strategy.Strategy, tradeFee f
 func (sim *Simulator) Run(candles []candles.Candle) []float64 {
 	var (
 		action market.Action
+		amount float64
 		lastprice float64
 		networth float64
 		ns []float64
@@ -35,7 +36,7 @@ func (sim *Simulator) Run(candles []candles.Candle) []float64 {
 	)
 
 	for i = 0; i < len(candles); i++ {
-		action = sim.Strategy.Decide(candles, i)
+		action, amount = sim.Strategy.Decide(candles, i)
 		lastprice = candles[i].Close
 		networth = sim.Position * lastprice + sim.Balance
 		ns = append(ns, networth)
@@ -48,7 +49,7 @@ func (sim *Simulator) Run(candles []candles.Candle) []float64 {
 		switch action {
 		case market.Buy:
 			if sim.Balance > 0 {
-				buy_usd := sim.Balance
+				buy_usd := sim.Balance * amount
 				fee := buy_usd * sim.TradeFee
 				rcv_amt := buy_usd - fee
 
@@ -61,10 +62,16 @@ func (sim *Simulator) Run(candles []candles.Candle) []float64 {
 			}
 		case market.Sell:
 			if sim.Position > 0 {
-				proceeds := sim.Position * lastprice
-				fee := proceeds * sim.TradeFee
-				sim.Balance += proceeds - fee
-				sim.Position = 0
+				sell_amt := sim.Position * amount
+				fee := sell_amt * sim.TradeFee
+				rcv_amt := (sell_amt - fee) * lastprice
+
+				if (rcv_amt <= 0) {
+					continue
+				}
+
+				sim.Balance  += rcv_amt
+				sim.Position -= sell_amt
 			}
 		}
 	}
