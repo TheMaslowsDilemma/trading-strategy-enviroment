@@ -29,7 +29,7 @@ func main() {
 	}
 
 	strat := &strategy.SimpleMAStrategy{ShortPeriod: 800, LongPeriod: 5000}
-	sim := simulation.NewSimulator(1000.0, strat, 0.02)
+	sim := simulation.NewSimulator(12.0, strat, 0.02)
 	ns := sim.Run(cs) // networth history of the bot
 
 	var ps_ld []opts.LineData
