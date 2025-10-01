@@ -28,8 +28,16 @@ func main() {
 		panic(err)
 	}
 
+<<<<<<< Updated upstream
 	strat := &strategy.SimpleMAStrategy{ShortPeriod: 800, LongPeriod: 5000}
 	sim := simulation.NewSimulator(12.0, strat, 0.02)
+=======
+	strat := &strategy.SimpleStrategy{ShortInterval: 60, LongInterval: 2000}
+
+	initialBalance := 12.0
+	fee := 0.002
+	sim := simulation.NewSimulator(initialBalance, strat, fee)
+>>>>>>> Stashed changes
 	ns := sim.Run(cs) // networth history of the bot
 
 	var ps_ld []opts.LineData
@@ -40,7 +48,11 @@ func main() {
 	csmax := len(cs) - 1
 
 	for i := 0; i < csmax; i++ {
+<<<<<<< Updated upstream
 		if i % 1000 == 0 {
+=======
+		if i % 3000 == 0 {
+>>>>>>> Stashed changes
 			ps_ld = append(ps_ld, opts.LineData{Value: []interface{}{x, cs[i].Close}})
 			if i < nsmax {
 				nw_ld = append(nw_ld, opts.LineData{Value: []interface{}{x, ns[i]}})
@@ -55,7 +67,11 @@ func main() {
 	linegraph.AddSeries("eth close price", ps_ld)
 	linegraph.AddSeries(fmt.Sprintf("%s net worth", strat.GetName()), nw_ld)
 	linegraph.SetGlobalOptions(
+<<<<<<< Updated upstream
 		charts.WithTitleOpts(opts.Title{Title: "Trading Strategy Performance", Subtitle: "initial balance of 1000 usd"}),
+=======
+		charts.WithTitleOpts(opts.Title{Title: "Trading Strategy Performance", Subtitle: fmt.Sprintf("Initial balance of $%v and fee of %v%%", initialBalance, fee * 100)}),
+>>>>>>> Stashed changes
 	)
 
 	f, err := os.Create("linegraph.html")

@@ -7,9 +7,11 @@
 *.dll
 *.so
 *.dylib
-
+*.html
 # Test binary, built with `go test -c`
 *.test
+*.csv
+*.DS_Store
 
 # Code coverage profiles and other test artifacts
 *.out
@@ -30,3 +32,4 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+.csv

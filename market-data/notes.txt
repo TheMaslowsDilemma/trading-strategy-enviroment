@@ -1,0 +1,13 @@
+-----------------------------------------------------------
+Notes on Market Data
+-----------------------------------------------------------
+
+how to place files in here:
+	just drop the csvs in this folder. it could be organized
+	more in the future, but were just using ethereum for now.	
+
+
+where to get some data:
+	for ethereum and bitcoin data this kaggle dataset is 
+	pretty good.
+	https://www.kaggle.com/datasets/patrickgendotti/btc-and-eth-1min-price-history
