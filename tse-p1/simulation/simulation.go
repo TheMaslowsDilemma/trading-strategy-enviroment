@@ -36,7 +36,6 @@ func (sim *Simulator) Run(candles []candles.Candle) []float64 {
 	)
 
 	for i = 0; i < len(candles); i++ {
-		action, amount = sim.Strategy.Decide(candles, i)
 		lastprice = candles[i].Close
 		networth = sim.Position * lastprice + sim.Balance
 		ns = append(ns, networth)
@@ -46,6 +45,7 @@ func (sim *Simulator) Run(candles []candles.Candle) []float64 {
 			return ns
 		}
 
+		action, amount = sim.Strategy.Decide(candles, i)
 		switch action {
 		case market.Buy:
 			if sim.Balance > 0 {

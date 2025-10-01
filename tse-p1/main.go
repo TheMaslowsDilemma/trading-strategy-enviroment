@@ -28,13 +28,15 @@ func main() {
 		panic(err)
 	}
 
-	strat := &strategy.SimpleStrategy{ShortInterval: 60, LongInterval: 2000}
-
+	// SIMULATION STARTUP AND RUN //
 	initialBalance := 12.0
-	fee := 0.002
+	fee := 0.004
+	strat := &strategy.SimpleStrategy{ShortInterval: 7, LongInterval: 24 * 60}
 	sim := simulation.NewSimulator(initialBalance, strat, fee)
 	ns := sim.Run(cs) // networth history of the bot
 
+
+	// GRAPHING STUFF //
 	var ps_ld []opts.LineData
 	var nw_ld []opts.LineData
 
