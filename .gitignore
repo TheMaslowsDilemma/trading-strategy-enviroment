@@ -12,6 +12,7 @@
 *.test
 *.csv
 *.DS_Store
+*.html
 
 # Code coverage profiles and other test artifacts
 *.out
