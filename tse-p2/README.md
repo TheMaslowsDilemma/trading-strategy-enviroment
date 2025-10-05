@@ -16,3 +16,14 @@ I want an environment for strategies to directly compete with each other. This c
 
 - **Strategy**: same idea as `tse-p1`
 
+#### System Overview (will remove above shortly)
+
+- **Simulation:** defines simulation fields, and start logic, result output, and cleanup logic
+
+- **Ledger:** holds state information for the simulation. this includes traders, and exchanges.
+
+- **Miner:** is responsible for updating the ledger through the creation and application of Transaction Blocks
+
+- **Trader:** makes decisions (transactions) based on wallet state, candle history, and strategy
+
+- **Mempool:** holds pending transactions, and is used by the *Miner* to fill transaction blocks
