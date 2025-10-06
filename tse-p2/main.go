@@ -123,8 +123,8 @@ func RunUserCLI(c int, rdr *bufio.Reader, sim *simulation.Simulation) {
         }
         listr, e = sim.GetLedgerItemString(ledger.LedgerAddr(id))
         if e != nil {
-            fmt.Printf("(%v) >> failed to GetLedgerItemString: %v\n", c, e)
-            return
+            fmt.Printf("(%v) >> failed to get item from ledger: %v\n", c, e)
+                return
         }
         fmt.Printf("(%v) >> %s\n", c, listr)
     } else {
