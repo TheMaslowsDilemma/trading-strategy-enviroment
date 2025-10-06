@@ -7,8 +7,8 @@ import (
     "bufio"
     "strings"
     "strconv"
+    "math/rand"
     "tse-p2/ledger"
-    "tse-p2/wallet"
     "tse-p2/simulation"
 )
 
@@ -21,6 +21,7 @@ func main() {
         err error
     )
 
+    rand.Seed(time.Now().UnixNano())
     fmt.Println("Trading Strategy Environment: Part Two")
 
     if len(os.Args) != 2 {
@@ -34,8 +35,9 @@ func main() {
     }
 
     sim, err = simulation.CreateSimulation(time.Duration(dur) * time.Second)
-    wallet1 := wallet.Wallet{ TraderId: 69, Reserves: make([]ledger.LedgerAddr, 2) }
-    sim.AddLedgerItem(4, wallet1)
+
+    walletId := sim.AddWallet(420)
+    fmt.Println(walletId)
 
     if err != nil {
         fmt.Println(err)

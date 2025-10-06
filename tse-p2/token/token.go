@@ -1,8 +1,9 @@
-package liquidity
+package token
 
 import (
 	"fmt"
-	"crypto/sha256"
+        "tse-p2/ledger"
+        "crypto/sha256"
 )
 
 type TokenReserve struct {
@@ -10,7 +11,7 @@ type TokenReserve struct {
 	Amount	uint64
 }
 
-func (lp TokenReserve) Copy() LedgerItem {
+func (lp TokenReserve) Copy() ledger.LedgerItem {
 	return TokenReserve {
 		Symbol: lp.Symbol,
 		Amount: lp.Amount,
@@ -18,9 +19,9 @@ func (lp TokenReserve) Copy() LedgerItem {
 }
 
 func (lp TokenReserve) String() string {
-	return fmt.Sprintf("{ sym: \"%v\", amt: %v }", lp.TokenSymbol, lp.TokenCount)
+	return fmt.Sprintf("{ sym: \"%v\", amt: %v }", lp.Symbol, lp.Amount)
 }
 
 func (lp TokenReserve) Hash() [sha256.Size]byte {
-	sha256.Sum256([]byte(lp.String()))
+	return sha256.Sum256([]byte(lp.String()))
 }

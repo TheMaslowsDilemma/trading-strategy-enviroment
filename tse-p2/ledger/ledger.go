@@ -3,6 +3,7 @@ package ledger
 import (
     "fmt"
     "crypto/sha256"
+    "math/rand"
 )
 
 type LedgerAddr uint64
@@ -21,4 +22,8 @@ func (l Ledger) GetItemString(id LedgerAddr) (string, error) {
         return "", fmt.Errorf("ledger contains no value for id: %v", id)
     }
     return li.String(), nil
+}
+
+func RandomLedgerAddr() LedgerAddr {
+    return LedgerAddr(uint64(rand.Uint32()) << 32 | uint64(rand.Uint32()))
 }
