@@ -8,6 +8,7 @@ import (
     "strings"
     "strconv"
     "tse-p2/simulation"
+    "tse-p2/wallet"
 )
 
 func main() {
@@ -32,18 +33,19 @@ func main() {
     }
 
     sim, err = simulation.CreateSimulation(time.Duration(dur) * time.Second)
+    wallet1 := wallet.Wallet{ TokenA: 0, TokenB: 3}
+    sim.AddLedgerItem(4, wallet1)
+
     if err != nil {
         fmt.Println(err)
         return
     }
     
-    // Initialize Read Channel
     rch = make(chan int, 1)
     rch <- 0
-
     rdr = bufio.NewReader(os.Stdin)
 
-    fmt.Printf("Simulation Created with duration %vs\n", sim.Dur)
+    fmt.Printf("Simulation Created with duration %v\n", sim.Dur)
     fmt.Println("Simulation Starting")
     
     go sim.Run()
@@ -105,10 +107,30 @@ func RunUserCLI(c int, rdr *bufio.Reader, sim *simulation.Simulation) {
         fmt.Printf("(%v) >> sim duration: %v\n", c, sim.CurrentDur)
     } else if s == "help" {
         fmt.Printf("(%v) >> %s\n", c, HelpString)
+    } else if strings.HasPrefix(s, "getitem") {
+        var (
+            idstr   string
+            id      uint64
+            listr   string
+        )
+
+        idstr = strings.TrimSpace(s[len("getitem"):])
+        id, e = strconv.ParseUint(idstr, 10, 64)
+        if e != nil {
+            fmt.Printf("(%v) >> invalid id for getitem: %v\n", c, e)
+            return
+        }
+        listr, e = sim.GetLedgerItemString(id)
+        if e != nil {
+            fmt.Printf("(%v) >> failed to GetLedgerItemString: %v\n", c, e)
+            return
+        }
+        fmt.Printf("(%v) >> %s\n", c, listr)
     } else {
         fmt.Printf("(%v) >> unrecognized command \"%s\"\n", c, s)
     }
 }
 
 var HelpString string = "\n\t\"help\": list of commands" +
-    "\n\t\"getdur\": get time duration since simulation start"
+    "\n\t\"getdur\": get time duration since simulation start" +
+    "\n\t\"getitem <id>\": print value of ledger for <id>"

@@ -1,7 +1,10 @@
 package simulation
 
 import (
+    "fmt"
     "time"
+    "sync"
+    "tse-p2/ledger"
 )
 
 type Simulation struct { 
@@ -10,6 +13,8 @@ type Simulation struct {
     Dur         time.Duration
     CurrentDur  time.Duration
     CancelChan  chan byte
+    LedgerLock  sync.Mutex
+    Ledger      ledger.Ledger
 }
 
 func CreateSimulation(d time.Duration) (*Simulation, error) {
@@ -17,7 +22,23 @@ func CreateSimulation(d time.Duration) (*Simulation, error) {
         Dur: d,
         CurrentDur: 0,
         CancelChan: make(chan byte, 1),
+        Ledger: make(map[uint64]ledger.LedgerItem),
     }, nil
+}
+
+func (s *Simulation) AddLedgerItem(id uint64, li ledger.LedgerItem) error {
+    var existing ledger.LedgerItem
+
+    s.LedgerLock.Lock()
+    defer s.LedgerLock.Unlock()
+
+    existing = s.Ledger[id]
+    if existing != nil {
+        return fmt.Errorf("ledger item already exists at %v", id)
+    }
+
+    s.Ledger[id] = li
+    return nil
 }
 
 func (s *Simulation) Run() {
@@ -45,4 +66,17 @@ func (s *Simulation) Iter() {
     } else {
         s.CurrentDur = cd
     }
+}
+
+func (s *Simulation) GetLedgerItemString(id uint64) (string, error) {
+    var (
+        str string
+        err error
+    )
+
+    s.LedgerLock.Lock()
+    str, err = s.Ledger.GetItemString(id)
+    s.LedgerLock.Unlock()
+
+    return str, err
 }
