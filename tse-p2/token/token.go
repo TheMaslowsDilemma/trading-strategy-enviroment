@@ -25,3 +25,20 @@ func (lp TokenReserve) String() string {
 func (lp TokenReserve) Hash() [sha256.Size]byte {
 	return sha256.Sum256([]byte(lp.String()))
 }
+
+func TrFromLedgerItem(li *ledger.LedgerItem) (*TokenReserve, error) {
+    var (
+        tkr     *TokenReserve
+        ok      bool
+    )
+
+    if li == nil {
+        return nil, fmt.Errorf("cannot cast tkr from nil ledger item.")
+    }
+
+    if tkr, ok = li.(*TokenReserve); ok {
+        return tkr, nil
+    }
+
+    return nil, fmt.Errorf("cannot cast tkr from non-tkr ledger item.")
+}
