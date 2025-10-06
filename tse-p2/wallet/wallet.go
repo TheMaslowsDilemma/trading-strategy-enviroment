@@ -12,7 +12,7 @@ type Wallet struct {
 }
 
 func (w *Wallet) AddReserve(raddr ledger.LedgerAddr) error {
-	if Contains(w.Reserves, raddr) {
+	if  w.ContainsReserve(raddr) {
             return fmt.Errorf("wallet already contains reserve %v", raddr)
         }
         w.Reserves = append(w.Reserves, raddr)
@@ -28,8 +28,21 @@ func (w Wallet) Hash() [sha256.Size]byte {
 }
 
 func (w Wallet) Copy() ledger.LedgerItem {
-	return Wallet {
-		TokenA: w.TokenA,
-		TokenB: w.TokenB,
+        var rs []ledger.LedgerAddr = make([]ledger.LedgerAddr, len(w.Reserves))
+	copy(w.Reserves, rs)
+        return Wallet {
+                TraderId: w.TraderId,
+                Reserves: rs,
 	}
 }
+
+func (w Wallet) ContainsReserve(raddr ledger.LedgerAddr) bool {
+    var i int;
+    for i = 0; i < len(w.Reserves); i++ {
+        if w.Reserves[i] == raddr {
+            return true
+        }
+    }
+    return false
+}
+

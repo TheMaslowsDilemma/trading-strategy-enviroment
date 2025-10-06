@@ -7,8 +7,9 @@ import (
     "bufio"
     "strings"
     "strconv"
-    "tse-p2/simulation"
+    "tse-p2/ledger"
     "tse-p2/wallet"
+    "tse-p2/simulation"
 )
 
 func main() {
@@ -33,7 +34,7 @@ func main() {
     }
 
     sim, err = simulation.CreateSimulation(time.Duration(dur) * time.Second)
-    wallet1 := wallet.Wallet{ TokenA: 0, TokenB: 3}
+    wallet1 := wallet.Wallet{ TraderId: 69, Reserves: make([]ledger.LedgerAddr, 2) }
     sim.AddLedgerItem(4, wallet1)
 
     if err != nil {
@@ -120,7 +121,7 @@ func RunUserCLI(c int, rdr *bufio.Reader, sim *simulation.Simulation) {
             fmt.Printf("(%v) >> invalid id for getitem: %v\n", c, e)
             return
         }
-        listr, e = sim.GetLedgerItemString(id)
+        listr, e = sim.GetLedgerItemString(ledger.LedgerAddr(id))
         if e != nil {
             fmt.Printf("(%v) >> failed to GetLedgerItemString: %v\n", c, e)
             return

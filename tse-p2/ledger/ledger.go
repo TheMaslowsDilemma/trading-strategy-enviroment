@@ -15,7 +15,7 @@ type LedgerItem interface {
 
 type Ledger map[LedgerAddr]LedgerItem
 
-func (l Ledger) GetItemString(id uint64) (string, error) {
+func (l Ledger) GetItemString(id LedgerAddr) (string, error) {
     var li LedgerItem = l[id]
     if li == nil {
         return "", fmt.Errorf("ledger contains no value for id: %v", id)

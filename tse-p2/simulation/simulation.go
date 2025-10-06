@@ -22,11 +22,11 @@ func CreateSimulation(d time.Duration) (*Simulation, error) {
         Dur: d,
         CurrentDur: 0,
         CancelChan: make(chan byte, 1),
-        Ledger: make(map[uint64]ledger.LedgerItem),
+        Ledger: make(ledger.Ledger),
     }, nil
 }
 
-func (s *Simulation) AddLedgerItem(id uint64, li ledger.LedgerItem) error {
+func (s *Simulation) AddLedgerItem(id ledger.LedgerAddr, li ledger.LedgerItem) error {
     var existing ledger.LedgerItem
 
     s.LedgerLock.Lock()
@@ -68,7 +68,7 @@ func (s *Simulation) Iter() {
     }
 }
 
-func (s *Simulation) GetLedgerItemString(id uint64) (string, error) {
+func (s *Simulation) GetLedgerItemString(id ledger.LedgerAddr) (string, error) {
     var (
         str string
         err error
