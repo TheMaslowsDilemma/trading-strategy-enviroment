@@ -12,13 +12,10 @@ type Wallet struct {
 }
 
 func (w *Wallet) AddReserve(raddr ledger.LedgerAddr) error {
-
-	// LEFT OFF HERE -
-	// - 1. find if addr already exists here
-	// - 2. if it doesn't , append it
-	// - 3. in simulation -- AddWallet, it should also have some number of 
-	// 		reserves to add
-	w.Reserves = append(w.Reserves, raddr)
+	if Contains(w.Reserves, raddr) {
+            return fmt.Errorf("wallet already contains reserve %v", raddr)
+        }
+        w.Reserves = append(w.Reserves, raddr)
 	return nil
 }
 
