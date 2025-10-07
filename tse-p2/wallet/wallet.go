@@ -2,7 +2,8 @@ package wallet
 
 import (
 	"fmt"
-	"tse-p2/ledger"
+        "tse-p2/token"
+        "tse-p2/ledger"
 	"crypto/sha256"
 )
 
@@ -37,7 +38,7 @@ func (w Wallet) Copy() ledger.LedgerItem {
 }
 
 func (w Wallet) ContainsReserve(raddr ledger.LedgerAddr) bool {
-    var i int;
+    var i int
     for i = 0; i < len(w.Reserves); i++ {
         if w.Reserves[i] == raddr {
             return true
@@ -46,3 +47,38 @@ func (w Wallet) ContainsReserve(raddr ledger.LedgerAddr) bool {
     return false
 }
 
+func (w Wallet) GetReserveAddr(sym string, l ledger.Ledger) (ledger.LedgerAddr, error) {
+    var (
+        i       int
+        tkr     *token.TokenReserve
+        err     error
+    )
+
+    for i = 0; i < len(w.Reserves); i++ {
+        tkr, err = token.TkrFromLedgerItem(l[w.Reserves[i]])
+        if err != nil {
+            continue; // we can ignore these errors
+        }
+        if tkr.Symbol == sym {
+            return w.Reserves[i], nil
+        }
+    }
+    return 0, fmt.Errorf("wallet reserve for \"%v\" DNE.", sym)
+}
+
+func WltFromLedgerItem(li ledger.LedgerItem) (*Wallet, error) {
+     var (
+         wlt    Wallet
+         ok     bool
+     )
+
+     if li == nil {
+         return nil, fmt.Errorf("cannot cast wallet from nil ledger item.")
+     }
+
+     if wlt, ok = li.(Wallet); ok {
+         return &wlt, nil
+     }
+
+     return nil, fmt.Errorf("cannot cast wallet from non-wallet ledger item.")
+}

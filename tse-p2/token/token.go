@@ -26,9 +26,10 @@ func (lp TokenReserve) Hash() [sha256.Size]byte {
 	return sha256.Sum256([]byte(lp.String()))
 }
 
-func TrFromLedgerItem(li *ledger.LedgerItem) (*TokenReserve, error) {
+// Note: This is returning a value, NOT casting the memory region at li
+func TkrFromLedgerItem(li ledger.LedgerItem) (*TokenReserve, error) {
     var (
-        tkr     *TokenReserve
+        tkr     TokenReserve
         ok      bool
     )
 
@@ -36,8 +37,8 @@ func TrFromLedgerItem(li *ledger.LedgerItem) (*TokenReserve, error) {
         return nil, fmt.Errorf("cannot cast tkr from nil ledger item.")
     }
 
-    if tkr, ok = li.(*TokenReserve); ok {
-        return tkr, nil
+    if tkr, ok = (li).(TokenReserve); ok {
+        return &tkr, nil
     }
 
     return nil, fmt.Errorf("cannot cast tkr from non-tkr ledger item.")
