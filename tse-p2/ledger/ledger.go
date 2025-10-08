@@ -27,3 +27,15 @@ func (l Ledger) GetItemString(id LedgerAddr) (string, error) {
 func RandomLedgerAddr() LedgerAddr {
     return LedgerAddr(uint64(rand.Uint32()) << 32 | uint64(rand.Uint32()))
 }
+
+// NOTE this does not handle delete operations, i dont think we will use those?
+func MergeLedger(main Ledger, feature Ledger) {
+    var (
+        laddr   LedgerAddr
+        litem   LedgerItem
+    )
+
+    for laddr, litem = range feature {
+        main[laddr] = litem.Copy()
+    }
+}

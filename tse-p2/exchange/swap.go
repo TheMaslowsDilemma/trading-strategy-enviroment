@@ -105,6 +105,34 @@ func (tx SwapExactTokensForTokensTx) Apply(l ledger.Ledger) (ledger.Ledger, erro
         return ldgp, nil
         
     } else if etkrB.Symbol == tx.SymbolIn && etkrA.Symbol == tx.SymbolOut {
+        amtO, err = exg.SwapBForA(l, tx.AmountIn)
+        if err != nil {
+            return fmt.Errorf("swap b for a failed: %v", err)
+        }
+
+        if amtO < tx.AmountMinOut {
+            return fmt.Errorf("swap slippage too high")
+        }
+        
+        // Make the Diff Ledger
+        ldgp = make(ledger.Ledge)
+
+        // Move In Funds to the Exchange
+        wtkrIn.Amount -= tx.AmountIn
+        etkrA.Amount += tx.AmountIn
+        
+        // Move Out Funds to the Wallet
+        etkrB.Amount -= amtO
+        wtkrOut.Amount += amtO
+
+        // Create Diff Ledger & Return
+        ldgp[waddrI] = wtkrI
+        ldgp[waddrO] = wtkrO
+        ldgp[w.TokenReserveA] = etkrA
+        ldgp[w.TokenReserveB] = etkrB
+
+        return ldgp, nil
+        
         // TODO this side of the swap !
     }
     return fmt.Errorf("failed to match symbols tx{ %v -> %v } != ex{ %v <-> %v }",
