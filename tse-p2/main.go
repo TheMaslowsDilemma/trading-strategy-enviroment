@@ -48,7 +48,7 @@ func main() {
     rch <- 0
     rdr = bufio.NewReader(os.Stdin)
 
-    fmt.Printf("Simulation Created with duration %v\n", sim.Dur)
+    fmt.Printf("Simulation Created with duration %v\n", sim.MaxDur)
     fmt.Println("Simulation Starting")
     
     go sim.Run()
@@ -107,7 +107,7 @@ func RunUserCLI(c int, rdr *bufio.Reader, sim *simulation.Simulation) {
         fmt.Printf("(%v) >> signaling sim shutdown\n", c)
         sim.CancelChan <- 1
     } else if s == "getdur" {
-        fmt.Printf("(%v) >> sim duration: %v\n", c, sim.CurrentDur)
+        fmt.Printf("(%v) >> sim duration: %v\n", c, sim.RunningDur)
     } else if s == "help" {
         fmt.Printf("(%v) >> %s\n", c, HelpString)
     } else if strings.HasPrefix(s, "getitem") {

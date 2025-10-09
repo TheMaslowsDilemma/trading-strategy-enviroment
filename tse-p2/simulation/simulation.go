@@ -4,30 +4,56 @@ import (
     "time"
     "sync"
     "tse-p2/ledger"
+    "tse-p2/mempool"
+    "tse-p2/miner"
 )
+
+const simulationMemoryPoolSize = 512
+const simulationEntityLogBufferSize = 10
 
 type Simulation struct { 
     start       time.Time
     end         time.Time
-    Dur         time.Duration
-    CurrentDur  time.Duration
+    MaxDur      time.Duration
+    RunningDur  time.Duration
     CancelChan  chan byte
     LedgerLock  sync.Mutex
     Ledger      ledger.Ledger
+    MainMiner   miner.Miner
+    MemoryPool  mempool.MemPool
 }
 
-func CreateSimulation(d time.Duration) (*Simulation, error) {
+func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
+    var (
+        mm      miner.Miner
+        lg      ledger.Ledger
+        mp      mempool.MemPool
+        cc      chan byte
+    )
+
+    lg = make(ledger.Ledger)
+    cc = make(chan byte, 1)
+    mm = miner.CreateMiner(lg, simulationEntityLogBufferSize)
+    mp = mempool.CreateMempool(simulationMemoryPoolSize)
+
     return &Simulation{
-        Dur: d,
-        CurrentDur: 0,
-        CancelChan: make(chan byte, 1),
-        Ledger: make(ledger.Ledger),
+        MaxDur: maxdur,
+        RunningDur: 0,
+        CancelChan: cc,
+        Ledger: lg,
+        MainMiner: mm,
+        MemoryPool: mp,
     }, nil
 }
 
 func (s *Simulation) Run() {
     s.start = time.Now()
 
+    // Start Entities
+    go s.minerTask()
+
+
+    // Enter Simulation Control Loop
     for {
         select {
             case <-s.CancelChan:
@@ -41,14 +67,14 @@ func (s *Simulation) Run() {
 }
 
 func (s *Simulation) Iter() {
-    var cd time.Duration
+    var currentd time.Duration
 
-    cd = time.Since(s.start)
-    if cd >= s.Dur {
+    currentd = time.Since(s.start)
+    if currentd >= s.MaxDur {
         s.CancelChan <- 1
         return
     } else {
-        s.CurrentDur = cd
+        s.RunningDur = currentd
     }
 }
 

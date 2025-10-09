@@ -2,32 +2,32 @@ package miner
 
 import (
     "fmt"
+    "time"
     "tse-p2/ledger"
+    "tse-p2/mempool"
 )
 
 const MaxBlockSize = 7
 
-type Miner struct { 
-    BackLedger  ledger.Ledger
-    Logs        chan string
+type Miner struct {
+    LastBlockTime       time.Time
+    BackLedger          ledger.Ledger
+    Logs                chan string
 }
 
 func CreateMiner(lg ledger.Ledger, logsize int) Miner {
     var (
         bckldg  ledger.Ledger
-        logs  chan string
-        err     error
+        logs    chan string
     )
 
     bckldg = make(ledger.Ledger)
     logs = make(chan string, logsize)
 
-    err = ledger.MergeUpdate(bckldg, lg)
-    if err != nil {
-        panic(fmt.Error("Miner constructor bad ledger copy: %v", err))
-    }
+    ledger.Merge(bckldg, lg)
     
     return Miner {
+        LastBlockTime: time.Now(),
         BackLedger: bckldg,
         Logs: logs,
     }
@@ -36,15 +36,15 @@ func CreateMiner(lg ledger.Ledger, logsize int) Miner {
 func (m *Miner) PushLog(log string) {
     select {
         case m.Logs <- log:
-            break;
+            break
         default:
             <- m.Logs
             m.Logs <- log
-            break;
+            break
     }
 }
 
-func (m *Miner) MineNextBlock(mpl mempool.Mempool) error {
+func (m *Miner) MineNextBlock(mpl *mempool.MemPool) error {
     var (
         txs     []ledger.Tx
         tx      ledger.Tx
@@ -52,10 +52,9 @@ func (m *Miner) MineNextBlock(mpl mempool.Mempool) error {
         err     error
     )
 
-    // create txs
-    txs, err = createTxs(mpl)
+    txs, err = createTxBlock(mpl)
     if err != nil {
-        return nil, fmt.Errorf("failed create txs: %v", err)
+        return fmt.Errorf("failed create txs: %v", err)
     }
 
     for _, tx = range txs {
@@ -64,11 +63,12 @@ func (m *Miner) MineNextBlock(mpl mempool.Mempool) error {
             m.PushLog(fmt.Sprintf("tx apply failed, skipping: %v", err))
             continue
         }
-        ledger.MergeUpdate(m.BackLedger, lgp)
+        ledger.Merge(m.BackLedger, lgp)
     }
+    return nil
 }
 
-func createTxBlock(mpl *mempool.MemoryPool) ([]ledger.Tx, error) {
+func createTxBlock(mpl *mempool.MemPool) ([]ledger.Tx, error) {
     var (
         i       int
         tx      ledger.Tx
@@ -77,18 +77,19 @@ func createTxBlock(mpl *mempool.MemoryPool) ([]ledger.Tx, error) {
     )               
     
     if mpl.Count == 0 {
-        return [], fmt.Errorf("no tx to process")
+        return []ledger.Tx{}, fmt.Errorf("no tx to process")
     }
 
     txs = make([]ledger.Tx, 0)
-
-    i = 0
-    while i < MaxBlockSize {
+    i = 0 
+    for i < MaxBlockSize {
+        
         tx, err = mpl.PopTx()
         if err != nil {
-            break // TODO Debug logging ?
+            break // TODO dbg log
         }
-        txs = append(txs, x)
+        txs = append(txs, tx)
+        i += 1
     }
 
     return txs, nil

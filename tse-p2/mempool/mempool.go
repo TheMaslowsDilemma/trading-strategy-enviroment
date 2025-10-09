@@ -5,34 +5,35 @@ import (
     "tse-p2/ledger"
 )
 
-type Mempool struct {
+type MemPool struct {
     PendingTx   chan ledger.Tx
     Count       int
 }
 
-func CreateMempool(int buffsize) Mempool {
-    if bufferSize < 1 {
+func CreateMempool(buffsize int) MemPool {
+    if buffsize < 1 {
         panic("Attempted to create Mempool with buffsize < 1")
     }
-    var pending = make(chan ledger.Tx, bufferSize)
-    return Mempool {
+    var pending = make(chan ledger.Tx, buffsize)
+    return MemPool {
         PendingTx: pending,
         Count: 0,
     }
 }
 
 
-func (m *Mempool) PushTx(tx ledger.Tx) error {
+func (m *MemPool) PushTx(tx ledger.Tx) error {
     select {
         case m.PendingTx <- tx:
             m.Count += 1
-            break;
+            break
         default:
             return fmt.Errorf("mempool is full.")
     }
+    return nil
 }
 
-func (m *Mempool) PopTx() (ledger.Tx, error) {
+func (m *MemPool) PopTx() (ledger.Tx, error) {
     var tx ledger.Tx
 
     if m.Count <= 0 {
@@ -40,10 +41,10 @@ func (m *Mempool) PopTx() (ledger.Tx, error) {
     }
 
     select {
-        case tx <- m.PendingTx
+        case tx = <- m.PendingTx:
             m.Count -= 1
             return tx, nil
         default:
-            return nil, fmt.Errrof("mempool is empty, race")
+            return nil, fmt.Errorf("mempool is empty, race")
     }
 }

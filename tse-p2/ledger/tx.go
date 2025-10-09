@@ -1,5 +1,5 @@
 package ledger
 
-type Transaction interface {
+type Tx interface {
     Apply(l Ledger) (Ledger, error)
 }

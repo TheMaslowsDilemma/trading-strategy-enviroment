@@ -29,7 +29,7 @@ func RandomLedgerAddr() LedgerAddr {
 }
 
 // NOTE this does not handle delete operations, i dont think we will use those?
-func MergeLedger(main Ledger, feature Ledger) {
+func Merge(main Ledger, feature Ledger) {
     var (
         laddr   LedgerAddr
         litem   LedgerItem
