@@ -101,7 +101,7 @@ func (tx SwapExactTokensForTokensTx) Apply(l ledger.Ledger) (ledger.Ledger, erro
         ldgp[waddrO] = wtkrO
         ldgp[w.TokenReserveA] = etkrA
         ldgp[w.TokenReserveB] = etkrB
-
+        
         return ldgp, nil
         
     } else if etkrB.Symbol == tx.SymbolIn && etkrA.Symbol == tx.SymbolOut {
@@ -131,9 +131,7 @@ func (tx SwapExactTokensForTokensTx) Apply(l ledger.Ledger) (ledger.Ledger, erro
         ldgp[w.TokenReserveA] = etkrA
         ldgp[w.TokenReserveB] = etkrB
 
-        return ldgp, nil
-        
-        // TODO this side of the swap !
+        return ldgp, nil    
     }
     return fmt.Errorf("failed to match symbols tx{ %v -> %v } != ex{ %v <-> %v }",
         tx.SymbolIn,
