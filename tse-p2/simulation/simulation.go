@@ -12,15 +12,16 @@ const simulationMemoryPoolSize = 512
 const simulationEntityLogBufferSize = 10
 
 type Simulation struct { 
-    start       time.Time
-    end         time.Time
-    MaxDur      time.Duration
-    RunningDur  time.Duration
-    CancelChan  chan byte
-    LedgerLock  sync.Mutex
-    Ledger      ledger.Ledger
-    MainMiner   miner.Miner
-    MemoryPool  mempool.MemPool
+    start               time.Time
+    end                 time.Time
+    MaxDur              time.Duration
+    RunningDur          time.Duration
+    CancelChan          chan byte
+    LedgerLock          sync.Mutex
+    Ledger              ledger.Ledger
+    MainMiner           miner.Miner
+    MemoryPool          mempool.MemPool
+    MainExchange        exchange.ConstantProductExchange
 }
 
 func CreateSimulation(maxdur time.Duration) (*Simulation, error) {

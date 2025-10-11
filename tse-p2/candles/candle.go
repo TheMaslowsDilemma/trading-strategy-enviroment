@@ -1,5 +1,9 @@
 package candles
 
+import (
+    "fmt"
+)
+
 type Candle struct {
     High        float64
     Low         float64
@@ -20,10 +24,26 @@ func (c *Candle) Add(cost float64, volume uint64) {
     if c.Low > cost {
         c.Low = cost
     }
+    c.Close = cost
     c.Volume += volume
 }
 
-func (c *Candle) Close(cost float64, volume uint64) {
-    c.Close = cost
-    c.Add(cost, volume)
+func (c Candle) String() {
+    return fmt.Sprintf("{ h: %.3f, l: %.3f, o: %.2f, c: %.2f, v: %v }",
+        c.High,
+        c.Low,
+        c.Open,
+        c.Close,
+        c.Volume
+    }
+}
+
+func (c Candle) Copy() {
+    return Candle {
+        High: c.High,
+        Low: c.Low,
+        Open: c.Open,
+        Close: c.Close,
+        Volume: c.Volume
+    }
 }

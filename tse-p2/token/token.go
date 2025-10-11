@@ -11,6 +11,13 @@ type TokenReserve struct {
 	Amount	uint64
 }
 
+func NewTokenReserve(s string, a uint64) TokenReserve {
+    return TokenReserve{
+        Symbol: s,
+        Amount: a,
+    }
+}
+
 func (lp TokenReserve) Copy() ledger.LedgerItem {
 	return TokenReserve {
 		Symbol: lp.Symbol,
