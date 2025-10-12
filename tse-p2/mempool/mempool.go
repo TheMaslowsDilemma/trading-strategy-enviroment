@@ -27,7 +27,7 @@ func (m *MemPool) PushTx(tx ledger.Tx) error {
         case m.PendingTx <- tx:
             m.Count += 1
             break
-        default:
+            default
             return fmt.Errorf("mempool is full.")
     }
     return nil

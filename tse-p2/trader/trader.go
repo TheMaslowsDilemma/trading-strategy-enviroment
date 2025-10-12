@@ -1,6 +1,8 @@
 package trader
 
 import (
+    "fmt"
+    "tse-p2/token"
     "tse-p2/ledger"
     "tse-p2/candles"
     "tse-p2/strategy"
@@ -9,27 +11,28 @@ import (
 )
 
 type Trader struct {
-    ExAddr      ledger.Addr
-    WalletAddr  ledger.Addr
+    ExAddr      ledger.LedgerAddr
+    ExSymA      string
+    ExSymB      string
+    WalletAddr  ledger.LedgerAddr
     Decider     strategy.Strategy
     PendingTx   bool
     Logs        chan string
 }
 
 /** NOTE for now, traders are associated with a specific exchange **/
-func InitTrader(s strategy.Strategy, logsize int, eaddr ledger.Addr, l ledger.Ledger) Trader {
+func CreateTrader(s strategy.Strategy, ls int, waddr, eaddr ledger.LedgerAddr, symA, symB string, l ledger.Ledger) Trader {
     var (
         ptx     bool
         lgs     chan string
-        waddr   ledger.Addr
-        wlt     wallet.Wallet
     )
     ptx = false
-    lgs = make(chan string, logsize)
-    waddr = wallet.InitWallet("usd", 10000, l) // NOTE default seed amount 10000
+    lgs = make(chan string, ls)
 
     return Trader {
-        ExAddr: eaddr
+        ExAddr: eaddr,
+        ExSymA: symA,
+        ExSymB: symB,
         WalletAddr: waddr,
         Decider: s,
         PendingTx: ptx,
@@ -37,9 +40,9 @@ func InitTrader(s strategy.Strategy, logsize int, eaddr ledger.Addr, l ledger.Le
     }
 }
 
-func (t *Trader) MakeDecision(sym string, cs []candle.Candle, l ledger.Ledger) *ledger.Tx {
+func (t *Trader) MakeDecision(cs []candles.Candle, l ledger.Ledger) ledger.Tx {
     var (
-        tx  *ledger.Tx
+        tx  ledger.Tx
         err error
     )
 
@@ -47,7 +50,7 @@ func (t *Trader) MakeDecision(sym string, cs []candle.Candle, l ledger.Ledger) *
         return nil
     }
 
-    tx, err = t.getTx(sym, cs, l)
+    tx, err = t.getTx(cs, l)
     if err != nil {
         // TODO ? log err
         return nil
@@ -56,34 +59,32 @@ func (t *Trader) MakeDecision(sym string, cs []candle.Candle, l ledger.Ledger) *
     return tx
 }
 
-func (t *Trader) getTx(cs []candles.Candle, l ledger.Ledger) (*ledger.Tx, error) {
+func (t *Trader) getTx(cs []candles.Candle, l ledger.Ledger) (ledger.Tx, error) {
     var (
         action strategy.Action
         confidence float64
-        err error
     )
 
     action, confidence = t.Decider.Decide(cs, l)
-
+ 
     switch action {
     case strategy.Hold:
         return nil, nil
     case strategy.Buy:
-        return t.buyTx(sym, confidence, l)
+        return t.SwapTx(t.ExSymA, t.ExSymB, confidence, l)
     case strategy.Sell:
-        return t.sellTx(sym, confidence, l)
+        return t.SwapTx(t.ExSymB, t.ExSymA, confidence, l)
     }
+    return nil, nil
 }
 
-func (t *Trader) buyTx(sym string, confidence float64, l *ledger.Ledger) (*ledger.Tx, error) {
+func (t *Trader) SwapTx(sndSym, rcvSym string, confidence float64, l ledger.Ledger) (ledger.Tx, error) {
     var (
         wlt         *wallet.Wallet
-        tkaddrA     ledger.LedgerAddr
-        tkaddrB     ledger.LedgerAddr
-        tkrA        *token.TokenReserve
-        tkrB        *token.TokenReserve
+        sndAddr     ledger.LedgerAddr
+        sndTkr      *token.TokenReserve
         amtIn       float64
-        amtMinOut   float64
+        amtOutMin   float64
         err         error
     )
     
@@ -92,25 +93,25 @@ func (t *Trader) buyTx(sym string, confidence float64, l *ledger.Ledger) (*ledge
          return nil, fmt.Errorf("buytx failed to cast wallet: %v", err)
     }
 
-    tkAddr, err = wlt.GetReserveAddr(sym, l)
+    sndAddr, err = wlt.GetReserveAddr(sndSym, l)
     if err != nil {
-        return ni, fmt.Errorf("buytx failed to get token reserve: %v", err)
+        return nil, fmt.Errorf("buytx failed to get token reserve: %v", err)
     }
     
-    tkA, err = token.TkrFromLedgerItem(l[tkAddr])
+    sndTkr, err = token.TkrFromLedgerItem(l[sndAddr])
     if err != nil {
-        return nil, fmt.Errorf("buytx failed to cast tkA: %v", err)
+        return nil, fmt.Errorf("buytx failed to cast sendTkr: %v", err)
     }
-    
-    amtIn  = tkA.Amount * confidence
-    amtMinOut = amntIn * 
 
-    return &SwapExactTokensForTokensTx {
-        SymbolIn: "usd",
-        SymbolOut: sym,
+    amtIn = sndTkr.Amount * confidence
+    amtOutMin = 0 // NOTE fix this in the future to use descrim TODO fix
+
+    return exchange.SwapExactTokensForTokensTx {
+        SymbolIn: sndSym,
+        SymbolOut: rcvSym,
         AmountIn: amtIn,
-        AmountMinOut: amtOut,
-        WalletAddr: t.Wallet,
+        AmountMinOut: amtOutMin,
+        WalletAddr: t.WalletAddr,
         ExchangeAddr: t.ExAddr,
-    }
+    }, nil
 }

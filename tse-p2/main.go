@@ -41,8 +41,7 @@ func main() {
 
     sim, err = simulation.CreateSimulation(time.Duration(dur) * time.Second)
 
-    userWalletAddr := sim.AddWallet(420)
-    fmt.Printf("init:\n--> user-wallet: %v\n--> mainexchange: %v\n\n", userWalletAddr, sim.ExAddr)
+    fmt.Printf("init:\n--> user-wallet: %v\n--> mainexchange: %v\n\n", sim.CliWallet, sim.ExAddr)
 
     if err != nil {
         fmt.Println(err)
@@ -140,9 +139,9 @@ func RunUserCLI(c int, rdr *bufio.Reader, sim *simulation.Simulation) {
             id      uint64
             listr   string
         )
-
+        // LEFT OFF HERE -- parse float 
         idstr = strings.TrimSpace(s[len("getitem"):])
-        id, e = strconv.ParseUint(idstr, 10, 64)
+        id, e = strconv.Parse(idstr, 10, 64)
         if e != nil {
             fmt.Printf("(%v) >> invalid id for getitem: %v\n", c, e)
             return

@@ -9,9 +9,8 @@ import (
 )
 
 type ConstantProductExchange struct {
-	LastPrice   float64
-	TkrAddrA    ledger.LedgerAddr
-	TkrAddrB    ledger.LedgerAddr
+    TkrAddrA    ledger.LedgerAddr
+    TkrAddrB    ledger.LedgerAddr
     CndlAddr    ledger.LedgerAddr
 }
 
@@ -24,7 +23,6 @@ func InitConstantProductExchange(symbA, symbB string, cntA, cntB float64, l ledg
 
     exaddr = ledger.RandomLedgerAddr()
     ex = ConstantProductExchange {
-        LastPrice: 0.0,
         TkrAddrA: token.InitTokenReserve(symbA, cntA, l),
         TkrAddrB: token.InitTokenReserve(symbB, cntB, l),
         CndlAddr: candles.InitCandleAudit(10, l), // NOTE hard coded
@@ -53,6 +51,11 @@ func (cpe ConstantProductExchange) String() string {
 
 func (cpe ConstantProductExchange) Hash() [sha256.Size]byte {
     return sha256.Sum256([]byte(cpe.String()))
+}
+
+func (cpe ConstantProductExchange) GetPriceA(l ledger.Ledger) {
+    // TODO use the ledger to get both token reserves
+    // use A / B to get A per b
 }
 
 func (cpe ConstantProductExchange) SwapAForB(l ledger.Ledger, ain float64) (float64, error) {
@@ -112,4 +115,3 @@ func CpeFromLedgerItem(li ledger.LedgerItem) (*ConstantProductExchange, error) {
     }
     return nil, fmt.Errorf("cannot cast cpe from non-cpe ledger item.")
 }
-

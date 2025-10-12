@@ -11,28 +11,40 @@ type Wallet struct {
 	Reserves	[]ledger.LedgerAddr
 }
 
-func InitWallet(seedSym string, seedAmt float64, l ledger.Ledger) ledger.LedgerAddr {
+
+func InitWallet(rs []token.TokenReserve, l ledger.Ledger) ledger.LedgerAddr {
     var (
         wlt     Wallet
-        tkraddr ledger.LedgerAddr
         wltaddr ledger.LedgerAddr
+        err     error
     )
     
-    tkraddr = token.InitTokenReserve(seedSym, seedAmt, l)
+    wlt = Wallet{ Reserves: make([]ledger.LedgerAddr, 0) }
     wltaddr = ledger.RandomLedgerAddr()
-    wlt = Wallet{ Reserves: make([]ledger.LedgerAddr, 1) }
-    wlt.Reserves[0] = tkraddr // add reserve
-    l[wltaddr] = wlt
+    
+    for _, r := range rs {
+        fmt.Printf("adding %v with %v amt\n", r.Symbol, r.Amount)
+        err = (&wlt).AddReserve(r.Symbol, r.Amount, l)
+        if err != nil {
+            fmt.Printf("err adding \"%v\" to wallet: %v", r.Symbol, err)
+        }
+    }  
 
+    l[wltaddr] = wlt
     return wltaddr
 }
 
-func (w *Wallet) AddReserve(raddr ledger.LedgerAddr) error {
-	if  w.ContainsReserve(raddr) {
-            return fmt.Errorf("wallet already contains reserve %v", raddr)
-        }
-        w.Reserves = append(w.Reserves, raddr)
-	return nil
+func (w *Wallet) AddReserve(sym string, amt float64, l ledger.Ledger) error {
+    var tkaddr ledger.LedgerAddr
+    if _, err := w.GetReserveAddr(sym, l); err == nil {
+        return fmt.Errorf("wallet already contains reserve %v", sym)
+    }
+
+    tkaddr = token.InitTokenReserve(sym, amt, l)
+    w.Reserves = append(w.Reserves, tkaddr)
+
+    fmt.Println(w.Reserves)
+    return nil
 }
 
 func (w Wallet) String() string {
@@ -45,11 +57,11 @@ func (w Wallet) Hash() [sha256.Size]byte {
 
 func (w Wallet) Copy() ledger.LedgerItem {
     var rs []ledger.LedgerAddr = make([]ledger.LedgerAddr, len(w.Reserves))
-	copy(w.Reserves, rs)
+    copy(w.Reserves, rs)
 
     return Wallet {
         Reserves: rs,
-	}
+    }
 }
 
 func (w Wallet) ContainsReserve(raddr ledger.LedgerAddr) bool {

@@ -8,6 +8,8 @@ import (
     "tse-p2/miner"
     "tse-p2/exchange"
     "tse-p2/trader"
+    "tse-p2/wallet"
+    "tse-p2/token"
 )
 
 const simulationMemoryPoolSize = 512
@@ -23,6 +25,8 @@ type Simulation struct {
     Ledger      ledger.Ledger
     MainMiner   miner.Miner
     MemoryPool  mempool.MemPool
+    CliTrader   trader.Trader
+    CliWallet   ledger.LedgerAddr
     ExAddr      ledger.LedgerAddr
 }
 
@@ -33,6 +37,8 @@ func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
         mp      mempool.MemPool
         eaddr   ledger.LedgerAddr
         cc      chan byte
+        trdr    trader.Trader
+        waddr   ledger.LedgerAddr
     )
 
     lg = make(ledger.Ledger)
@@ -42,6 +48,28 @@ func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
     mp = mempool.CreateMempool(simulationMemoryPoolSize)
     eaddr = exchange.InitConstantProductExchange("usd", "eth", 2000, 500000000, lg)
     
+    // Initialize CLI User Wallet and Trader //
+    rs := []token.TokenReserve {
+        token.TokenReserve {
+            Symbol: "usd",
+            Amount: 10000.0,
+        },
+        token.TokenReserve {
+            Symbol: "eth",
+            Amount: 0.0,
+        },
+    }
+
+    waddr = wallet.InitWallet(rs, lg)
+    trdr = trader.CreateTrader(
+        nil, // no strategy for user trader
+        10,
+        waddr,
+        eaddr,
+        "usd",
+        "eth",
+        lg,
+    )
 
     return &Simulation{
         MaxDur: maxdur,
@@ -51,6 +79,8 @@ func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
         MainMiner: mm,
         MemoryPool: mp,
         ExAddr: eaddr,
+        CliTrader: trdr,
+        CliWallet: waddr,
     }, nil
 }
 
