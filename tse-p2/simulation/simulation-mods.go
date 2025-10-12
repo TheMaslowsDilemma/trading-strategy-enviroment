@@ -26,3 +26,7 @@ func (s *Simulation) AddLedgerItem(id ledger.LedgerAddr, li ledger.LedgerItem) e
 func (s *Simulation) AddWallet(amount float64) ledger.LedgerAddr {
     return wallet.InitWallet( "usd", amount, s.Ledger)
 }
+
+func (s *Simulation) PlaceUserTrade(from, to string, amount float64) {
+
+}

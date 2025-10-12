@@ -7,22 +7,23 @@ import (
     "tse-p2/mempool"
     "tse-p2/miner"
     "tse-p2/exchange"
+    "tse-p2/trader"
 )
 
 const simulationMemoryPoolSize = 512
 const simulationEntityLogBufferSize = 10
 
 type Simulation struct { 
-    start               time.Time
-    end                 time.Time
-    MaxDur              time.Duration
-    RunningDur          time.Duration
-    CancelChan          chan byte
-    LedgerLock          sync.Mutex
-    Ledger              ledger.Ledger
-    MainMiner           miner.Miner
-    MemoryPool          mempool.MemPool
-    MainExchange        exchange.ConstantProductExchange
+    start       time.Time
+    end         time.Time
+    MaxDur      time.Duration
+    RunningDur  time.Duration
+    CancelChan  chan byte
+    LedgerLock  sync.Mutex
+    Ledger      ledger.Ledger
+    MainMiner   miner.Miner
+    MemoryPool  mempool.MemPool
+    ExAddr      ledger.LedgerAddr
 }
 
 func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
@@ -30,6 +31,7 @@ func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
         mm      miner.Miner
         lg      ledger.Ledger
         mp      mempool.MemPool
+        eaddr   ledger.LedgerAddr
         cc      chan byte
     )
 
@@ -38,6 +40,8 @@ func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
     
     mm = miner.CreateMiner(lg, simulationEntityLogBufferSize)
     mp = mempool.CreateMempool(simulationMemoryPoolSize)
+    eaddr = exchange.InitConstantProductExchange("usd", "eth", 2000, 500000000, lg)
+    
 
     return &Simulation{
         MaxDur: maxdur,
@@ -46,19 +50,17 @@ func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
         Ledger: lg,
         MainMiner: mm,
         MemoryPool: mp,
+        ExAddr: eaddr,
     }, nil
 }
 
 func (s *Simulation) Run() {
     s.start = time.Now()
 
-    // Initialize Entities
-
     // Start Entity Routines
     go s.minerTask()
 
-
-    // Enter Simulation Control Loop
+    // Simulation Control Loop
     for {
         select {
             case <-s.CancelChan:

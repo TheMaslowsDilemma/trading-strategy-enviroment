@@ -106,7 +106,7 @@ func (t *Trader) buyTx(sym string, confidence float64, l *ledger.Ledger) (*ledge
     amtMinOut = amntIn * 
 
     return &SwapExactTokensForTokensTx {
-        SymbolIn: "usd", // whenever we buy we use "usd"
+        SymbolIn: "usd",
         SymbolOut: sym,
         AmountIn: amtIn,
         AmountMinOut: amtOut,
