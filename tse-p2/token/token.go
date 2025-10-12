@@ -2,20 +2,23 @@ package token
 
 import (
 	"fmt"
-        "tse-p2/ledger"
-        "crypto/sha256"
+    "tse-p2/ledger"
+    "crypto/sha256"
 )
 
 type TokenReserve struct {
 	Symbol	string
-	Amount	uint64
+	Amount	float64
 }
 
-func NewTokenReserve(s string, a uint64) TokenReserve {
-    return TokenReserve{
-        Symbol: s,
-        Amount: a,
+func InitTokenReserve(sym string, amt float64, l ledger.Ledger) ledger.LedgerAddr {
+    var tkraddr ledger.LedgerAddr
+    tkraddr = ledger.RandomLedgerAddr()
+    l[tkraddr] = TokenReserve {
+        Symbol: sym,
+        Amount: amt,
     }
+    return tkraddr
 }
 
 func (lp TokenReserve) Copy() ledger.LedgerItem {

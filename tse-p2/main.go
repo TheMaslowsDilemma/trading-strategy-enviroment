@@ -14,6 +14,7 @@ import (
 
 func main() {
     var (
+        rsd int64
         rdr *bufio.Reader
         rch chan int
         sim *simulation.Simulation
@@ -21,8 +22,12 @@ func main() {
         err error
     )
 
-    rand.Seed(time.Now().UnixNano())
+    rsd = time.Now().UnixNano()
+    rand.Seed(rsd)
+    fmt.Println("---------------------------------------")
     fmt.Println("Trading Strategy Environment: Part Two")
+    fmt.Printf("seed: %v\n", rsd)
+    fmt.Println("---------------------------------------")
 
     if len(os.Args) != 2 {
         fmt.Println("usage: go run . <duration-in-seconds>")

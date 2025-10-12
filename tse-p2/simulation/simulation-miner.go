@@ -9,25 +9,29 @@ const timeBetweenMinerIterations = 50 * time.Millisecond
 const timeBetweenBlocks = 250 * time.Millisecond
 
 func (sim *Simulation) minerTask() {
+    var tick uint64 = 0
+
     for {
-	select {
-	    case <-sim.CancelChan:
+    	select {
+    	    case <-sim.CancelChan:
                 return
-	    default:
-	        sim.iterateMinerTask()
-	        break
-	}
+    	    default:
+    	        sim.iterateMinerTask(tick)
+    	        break
+    	}
+        tick += 1
         time.Sleep(timeBetweenMinerIterations)
     }
+
 }
 
-func (sim *Simulation) iterateMinerTask() {
-    // TODO add responses to external commands
-    // this would happen before doing any ledger update
+func (sim *Simulation) iterateMinerTask(tick uint64) {
     var err error
 
+    // TODO ? add CLI interations here
+
     if time.Since(sim.MainMiner.LastBlockTime) >= timeBetweenBlocks {
-        err = sim.MainMiner.MineNextBlock(&sim.MemoryPool)
+        err = sim.MainMiner.MineNextBlock(tick, &sim.MemoryPool)
         if err != nil {
             // TODO push err log to sim            
         }

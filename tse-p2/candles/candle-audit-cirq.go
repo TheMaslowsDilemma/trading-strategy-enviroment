@@ -1,5 +1,8 @@
 package candles
 
+import (
+    "fmt"
+)
 
 type CandleCirq struct {
     Cs  []Candle
@@ -8,8 +11,8 @@ type CandleCirq struct {
     Cnt uint32
 }
 
-func NewCandleCirq(n int) CandleCirq {
-    var cs []Candle = make([]Candle, n)
+func NewCandleCirq(n uint32) CandleCirq {
+    var cs []Candle = make([]Candle, int(n))
     return CandleCirq {
         Cs: cs,
         Cap: n,
@@ -37,8 +40,7 @@ func (cq *CandleCirq) Dequeue() (Candle, error) {
     idx = (cq.Cap - cq.Cnt + cq.Fnt) % cq.Cap // same as Fnt - Cnt mod Cap
     cq.Cnt -= 1
 
-    cd = cq.Cs[idx]
-    return cd
+    return cq.Cs[idx], nil
 }
 
 func (cq CandleCirq) Copy() CandleCirq {

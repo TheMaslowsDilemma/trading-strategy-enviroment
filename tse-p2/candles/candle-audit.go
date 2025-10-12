@@ -14,33 +14,34 @@ type CandleAudit struct {
     CandleHistory       CandleCirq
 }
 
-func NewCandleAudit(n int) CandleAudit {
-    var cq CandleCirq = NewCandleCirq(n)
-    return CandleAudit {
-        LastActiveGrp: 0,
+func InitCandleAudit(size uint32, l ledger.Ledger) ledger.LedgerAddr {
+    var laddr ledger.LedgerAddr
+
+    laddr = ledger.RandomLedgerAddr()
+    l[laddr] = CandleAudit {
+        LastActive: 0,
         Constructing: false,
         CurrentCandle: Candle{},
-        PastCandle: cc,
+        CandleHistory: NewCandleCirq(size),
     }
+    return laddr
 }
 
-func (ca *CandleAudit) Add(uint64 tick, cost float64, volume uint64) {
-    var (
-        tmod    uint32
-        tgrp      uint64
-    )
+func (ca *CandleAudit) Add(tick uint64, price float64, volume float64) {
+    var timegroup uint64
     
-    tgrp = tick / globals.TICK_PER_SECOND
+    timegroup = tick / globals.TICK_PER_SECOND
 
-    if tgrp != ca.LastActiveGrp {
-        ca.startNextCandle(cost, volume)
+    if timegroup != ca.LastActive {
+        ca.startNextCandle(price, volume)
     } else {
-        &(ca.CurrentCandle).Add(cost, volume)
+        (&ca.CurrentCandle).Add(price, volume)
     }
-    ca.LastActiveGrp = tgrp
+
+    ca.LastActive = timegroup
 }
 
-func (ca *CandleAudit) startNextCandle(cost float64, volume uint64) {
+func (ca *CandleAudit) startNextCandle(price float64, volume float64) {
     // NOTE when we enqueue a candle we loose older ones.
     // TODO give auditers a channel to emit candles to be stored
     // in some longer term storage like postgres db -- eventually
@@ -50,14 +51,14 @@ func (ca *CandleAudit) startNextCandle(cost float64, volume uint64) {
     }
 
     ca.CurrentCandle = Candle{}
-    (&ca.CurrentCandle).Open(cost, volume)
+    (&ca.CurrentCandle).Start(price, volume)
     ca.Constructing = true
 }
 
-/** --- LedgerItem Interface Implementation --- **/
+/*** --- LedgerItem Implementation --- ***/
 
-func (ca *CandleAudit) Copy() ledger.LedgerItem {
-    return &CandleAudit {
+func (ca CandleAudit) Copy() ledger.LedgerItem {
+    return CandleAudit {
         LastActive: ca.LastActive,
         Constructing: ca.Constructing,
         CurrentCandle: ca.CurrentCandle.Copy(),
@@ -65,14 +66,29 @@ func (ca *CandleAudit) Copy() ledger.LedgerItem {
     }
 }
 
-
-func (ca *CandleAudit) String() string {
-    return fmt.Sprintf("{ cc: %v, last-active: %v }",
+func (ca CandleAudit) String() string {
+    return fmt.Sprintf("{ crnt-cndl: %v, last-active: %v }",
         ca.CurrentCandle.String(),
         ca.LastActive,
     )
 }
 
-func (ca *CandleAudit) Hash() [sha256.Size]byte {
-    return sha256.Sum([]byte(ca.String()))
+func (ca CandleAudit) Hash() [sha256.Size]byte {
+    return sha256.Sum256([]byte(ca.String()))
+}
+
+func CandleAuditFromLedgerItem(li ledger.LedgerItem) (*CandleAudit, error) {
+    var (
+        ca  CandleAudit
+        ok  bool
+    )
+
+    if li == nil {
+        return nil, fmt.Errorf("cannot cast candle audit from nil ledger item.")
+    }
+    
+    if ca, ok = li.(CandleAudit); ok {
+        return &ca, nil
+    }
+    return nil, fmt.Errorf("cannot cast candle audit from non candle audit ledger item.")
 }

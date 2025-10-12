@@ -8,8 +8,23 @@ import (
 )
 
 type Wallet struct {
-	TraderId	uint64
 	Reserves	[]ledger.LedgerAddr
+}
+
+func InitWallet(seedSym string, seedAmt float64, l ledger.Ledger) ledger.LedgerAddr {
+    var (
+        wlt     Wallet
+        tkraddr ledger.LedgerAddr
+        wltaddr ledger.LedgerAddr
+    )
+    
+    tkraddr = token.InitTokenReserve(seedSym, seedAmt, l)
+    wltaddr = ledger.RandomLedgerAddr()
+    wlt = Wallet{ Reserves: make([]ledger.LedgerAddr, 1) }
+    wlt.Reserves[0] = tkraddr // add reserve
+    l[wltaddr] = wlt
+
+    return wltaddr
 }
 
 func (w *Wallet) AddReserve(raddr ledger.LedgerAddr) error {
@@ -21,7 +36,7 @@ func (w *Wallet) AddReserve(raddr ledger.LedgerAddr) error {
 }
 
 func (w Wallet) String() string {
-	return fmt.Sprintf("trader-id: %v, reserves: %v", w.TraderId, w.Reserves)
+	return fmt.Sprintf("reserves: %v", w.Reserves)
 }
 
 func (w Wallet) Hash() [sha256.Size]byte {
@@ -29,11 +44,11 @@ func (w Wallet) Hash() [sha256.Size]byte {
 }
 
 func (w Wallet) Copy() ledger.LedgerItem {
-        var rs []ledger.LedgerAddr = make([]ledger.LedgerAddr, len(w.Reserves))
+    var rs []ledger.LedgerAddr = make([]ledger.LedgerAddr, len(w.Reserves))
 	copy(w.Reserves, rs)
-        return Wallet {
-                TraderId: w.TraderId,
-                Reserves: rs,
+
+    return Wallet {
+        Reserves: rs,
 	}
 }
 
@@ -66,7 +81,7 @@ func (w Wallet) GetReserveAddr(sym string, l ledger.Ledger) (ledger.LedgerAddr, 
     return 0, fmt.Errorf("wallet reserve for \"%v\" DNE.", sym)
 }
 
-func WltFromLedgerItem(li ledger.LedgerItem) (*Wallet, error) {
+func WalletFromLedgerItem(li ledger.LedgerItem) (*Wallet, error) {
      var (
          wlt    Wallet
          ok     bool

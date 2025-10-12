@@ -6,6 +6,7 @@ import (
     "tse-p2/ledger"
     "tse-p2/mempool"
     "tse-p2/miner"
+    "tse-p2/exchange"
 )
 
 const simulationMemoryPoolSize = 512
@@ -34,6 +35,7 @@ func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
 
     lg = make(ledger.Ledger)
     cc = make(chan byte, 1)
+    
     mm = miner.CreateMiner(lg, simulationEntityLogBufferSize)
     mp = mempool.CreateMempool(simulationMemoryPoolSize)
 
@@ -50,7 +52,9 @@ func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
 func (s *Simulation) Run() {
     s.start = time.Now()
 
-    // Start Entities
+    // Initialize Entities
+
+    // Start Entity Routines
     go s.minerTask()
 
 

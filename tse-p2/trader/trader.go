@@ -4,28 +4,33 @@ import (
     "tse-p2/ledger"
     "tse-p2/candles"
     "tse-p2/strategy"
+    "tse-p2/wallet"
+    "tse-p2/exchange"
 )
 
 type Trader struct {
-    Wallet      ledger.Addr
+    ExAddr      ledger.Addr
+    WalletAddr  ledger.Addr
     Decider     strategy.Strategy
-    PendingTx   chan uint8
+    PendingTx   bool
     Logs        chan string
 }
 
-func CreateTrader(s strategy.Strategy, logsize int) Trader {
+/** NOTE for now, traders are associated with a specific exchange **/
+func InitTrader(s strategy.Strategy, logsize int, eaddr ledger.Addr, l ledger.Ledger) Trader {
     var (
-        ptx     chan uint8
+        ptx     bool
         lgs     chan string
         waddr   ledger.Addr
+        wlt     wallet.Wallet
     )
-
-    waddr = ledger.RandomLedgerAddr()
-    ptx = make(chan uint8, 1)
+    ptx = false
     lgs = make(chan string, logsize)
+    waddr = wallet.InitWallet("usd", 10000, l) // NOTE default seed amount 10000
 
     return Trader {
-        Wallet: waddr,
+        ExAddr: eaddr
+        WalletAddr: waddr,
         Decider: s,
         PendingTx: ptx,
         Logs: lgs,
@@ -33,13 +38,22 @@ func CreateTrader(s strategy.Strategy, logsize int) Trader {
 }
 
 func (t *Trader) MakeDecision(sym string, cs []candle.Candle, l ledger.Ledger) *ledger.Tx {
+    var (
+        tx  *ledger.Tx
+        err error
+    )
 
-    select {
-    case <-t.PendingTx:
+    if t.PendingTx {
         return nil
-    default:
-        return t.getTx(sym, cs, l)
     }
+
+    tx, err = t.getTx(sym, cs, l)
+    if err != nil {
+        // TODO ? log err
+        return nil
+    }
+
+    return tx
 }
 
 func (t *Trader) getTx(cs []candles.Candle, l ledger.Ledger) (*ledger.Tx, error) {
@@ -61,17 +75,19 @@ func (t *Trader) getTx(cs []candles.Candle, l ledger.Ledger) (*ledger.Tx, error)
     }
 }
 
-func (t *Trader) buyTx(sym string, c float64, l *ledger.Ledger) (*ledger.Tx, error) {
+func (t *Trader) buyTx(sym string, confidence float64, l *ledger.Ledger) (*ledger.Tx, error) {
     var (
-        wlt     *wallet.Wallet
-        tkaddrA ledger.LedgerAddr
-        tkaddrB ledger.LedgerAddr
-        tkrA    *token.TokenReserve
-        tkrB    *token.TokenReserve
-        err error
+        wlt         *wallet.Wallet
+        tkaddrA     ledger.LedgerAddr
+        tkaddrB     ledger.LedgerAddr
+        tkrA        *token.TokenReserve
+        tkrB        *token.TokenReserve
+        amtIn       float64
+        amtMinOut   float64
+        err         error
     )
     
-    wlt, err = wallet.WalletFromLedgerItem(l[t.Wallet])
+    wlt, err = wallet.WalletFromLedgerItem(l[t.WalletAddr])
     if err != nil {
          return nil, fmt.Errorf("buytx failed to cast wallet: %v", err)
     }
@@ -86,5 +102,15 @@ func (t *Trader) buyTx(sym string, c float64, l *ledger.Ledger) (*ledger.Tx, err
         return nil, fmt.Errorf("buytx failed to cast tkA: %v", err)
     }
     
-     
+    amtIn  = tkA.Amount * confidence
+    amtMinOut = amntIn * 
+
+    return &SwapExactTokensForTokensTx {
+        SymbolIn: "usd", // whenever we buy we use "usd"
+        SymbolOut: sym,
+        AmountIn: amtIn,
+        AmountMinOut: amtOut,
+        WalletAddr: t.Wallet,
+        ExchangeAddr: t.ExAddr,
+    }
 }

@@ -9,41 +9,42 @@ type Candle struct {
     Low         float64
     Open        float64
     Close       float64
-    Volume      uint64
+    Volume      float64
 }
 
-func (c *Candle) Open(cost float64, volume uint64) {
-    c.Open = cost
-    c.Add(cost, volume)
+func (c *Candle) Start(price float64, volume float64) {
+    c.Open = price
+    c.Add(price, volume)
 }
 
-func (c *Candle) Add(cost float64, volume uint64) {
-    if c.High < cost {
-        c.High = cost
+func (c *Candle) Add(price float64, volume float64) {
+    if c.High < price {
+        c.High = price
     }
-    if c.Low > cost {
-        c.Low = cost
+    if c.Low > price {
+        c.Low = price
     }
-    c.Close = cost
+    c.Close = price
     c.Volume += volume
 }
 
-func (c Candle) String() {
-    return fmt.Sprintf("{ h: %.3f, l: %.3f, o: %.2f, c: %.2f, v: %v }",
+func (c Candle) String() string {
+    return fmt.Sprintf("{ h: %.3f, l: %.3f, o: %.3f, c: %.3f, v: %.3v }",
         c.High,
         c.Low,
         c.Open,
         c.Close,
-        c.Volume
-    }
+        c.Volume,
+    )
 }
 
-func (c Candle) Copy() {
+
+func (c Candle) Copy() Candle {
     return Candle {
         High: c.High,
         Low: c.Low,
         Open: c.Open,
         Close: c.Close,
-        Volume: c.Volume
+        Volume: c.Volume,
     }
 }

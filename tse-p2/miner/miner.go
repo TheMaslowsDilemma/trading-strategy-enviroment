@@ -44,7 +44,7 @@ func (m *Miner) PushLog(log string) {
     }
 }
 
-func (m *Miner) MineNextBlock(mpl *mempool.MemPool) error {
+func (m *Miner) MineNextBlock(tick uint64, mpl *mempool.MemPool) error {
     var (
         txs     []ledger.Tx
         tx      ledger.Tx
@@ -58,7 +58,7 @@ func (m *Miner) MineNextBlock(mpl *mempool.MemPool) error {
     }
 
     for _, tx = range txs {
-        lgp, err = tx.Apply(m.BackLedger)
+        lgp, err = tx.Apply(tick, m.BackLedger)
         if err != nil {
             m.PushLog(fmt.Sprintf("tx apply failed, skipping: %v", err))
             continue
