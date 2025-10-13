@@ -33,7 +33,7 @@ func (ca *CandleAudit) Add(tick uint64, price float64, volume float64) {
     timegroup = tick / globals.TICK_PER_SECOND
 
     if timegroup != ca.LastActive {
-        ca.startNextCandle(price, volume)
+        ca.startNextCandle(price, volume, timegroup)
     } else {
         (&ca.CurrentCandle).Add(price, volume)
     }
@@ -41,7 +41,7 @@ func (ca *CandleAudit) Add(tick uint64, price float64, volume float64) {
     ca.LastActive = timegroup
 }
 
-func (ca *CandleAudit) startNextCandle(price float64, volume float64) {
+func (ca *CandleAudit) startNextCandle(price float64, volume float64, tick uint64) {
     // NOTE when we enqueue a candle we loose older ones.
     // TODO give auditers a channel to emit candles to be stored
     // in some longer term storage like postgres db -- eventually
@@ -51,7 +51,7 @@ func (ca *CandleAudit) startNextCandle(price float64, volume float64) {
     }
 
     ca.CurrentCandle = Candle{}
-    (&ca.CurrentCandle).Start(price, volume)
+    (&ca.CurrentCandle).Start(price, volume, tick)
     ca.Constructing = true
 }
 

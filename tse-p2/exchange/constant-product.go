@@ -11,7 +11,7 @@ import (
 type ConstantProductExchange struct {
     TkrAddrA    ledger.LedgerAddr
     TkrAddrB    ledger.LedgerAddr
-    CndlAddr    ledger.LedgerAddr
+    CndlAddr    ledger.LedgerAddr // ledger addr of CandleAudit
 }
 
 // Need to init against a ledger... so we can create token reserves too

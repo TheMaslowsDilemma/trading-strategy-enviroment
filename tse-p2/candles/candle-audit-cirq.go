@@ -67,3 +67,23 @@ func (cq CandleCirq) Copy() CandleCirq {
         Cap: cq.Cap,
     }
 }
+
+// CandlesInOrder returns a slice of candles in chronological order (oldest first)
+func (cq *CandleCirq) CandlesInOrder() []Candle {
+    if cq.Cnt == 0 {
+        return []Candle{}
+    }
+    
+    // Create result slice with exact count
+    result := make([]Candle, cq.Cnt)
+    
+    // Starting point is the oldest candle (where dequeue would read from)
+    startIdx := (cq.Cap - cq.Cnt + cq.Fnt) % cq.Cap
+    
+    for i := uint32(0); i < cq.Cnt; i++ {
+        idx := (startIdx + i) % cq.Cap
+        result[i] = cq.Cs[idx].Copy() // Use Copy() to avoid modifying original
+    }
+    
+    return result
+}

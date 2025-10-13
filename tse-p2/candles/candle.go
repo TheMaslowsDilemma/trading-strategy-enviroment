@@ -10,10 +10,12 @@ type Candle struct {
     Open        float64
     Close       float64
     Volume      float64
+    TimeStamp   uint64
 }
 
-func (c *Candle) Start(price float64, volume float64) {
+func (c *Candle) Start(price float64, volume float64, ts uint64) {
     c.Open = price
+    c.TimeStamp = ts
     c.Add(price, volume)
 }
 
@@ -29,12 +31,13 @@ func (c *Candle) Add(price float64, volume float64) {
 }
 
 func (c Candle) String() string {
-    return fmt.Sprintf("{ h: %.3f, l: %.3f, o: %.3f, c: %.3f, v: %.3v }",
+    return fmt.Sprintf("{ h: %.3f, l: %.3f, o: %.3f, c: %.3f, v: %.3v, ts: %v }",
         c.High,
         c.Low,
         c.Open,
         c.Close,
         c.Volume,
+        c.TimeStamp,
     )
 }
 
@@ -46,5 +49,6 @@ func (c Candle) Copy() Candle {
         Open: c.Open,
         Close: c.Close,
         Volume: c.Volume,
+        TimeStamp: c.TimeStamp,
     }
 }
