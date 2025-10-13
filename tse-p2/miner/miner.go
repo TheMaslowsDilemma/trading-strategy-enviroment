@@ -15,16 +15,15 @@ type Miner struct {
     Logs                chan string
 }
 
-func CreateMiner(lg ledger.Ledger, logsize int) Miner {
+func CreateMiner(logsize int, lg ledger.Ledger) Miner {
     var (
         bckldg  ledger.Ledger
         logs    chan string
     )
 
     bckldg = make(ledger.Ledger)
-    logs = make(chan string, logsize)
-
-    ledger.Merge(bckldg, lg)
+    logs   = make(chan string, logsize)
+    ledger.Merge(&bckldg, lg)
     
     return Miner {
         LastBlockTime: time.Now(),
@@ -60,11 +59,12 @@ func (m *Miner) MineNextBlock(tick uint64, mpl *mempool.MemPool) error {
     for _, tx = range txs {
         lgp, err = tx.Apply(tick, m.BackLedger)
         if err != nil {
-            m.PushLog(fmt.Sprintf("tx apply failed, skipping: %v", err))
+            fmt.Printf("tx apply failed, skipping: %v", err)
             continue
         }
-        ledger.Merge(m.BackLedger, lgp)
+        ledger.Merge(&m.BackLedger, lgp)
     }
+
     return nil
 }
 

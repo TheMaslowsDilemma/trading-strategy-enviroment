@@ -32,22 +32,20 @@ type Simulation struct {
 
 func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
     var (
+        cc      chan byte
         mm      miner.Miner
         lg      ledger.Ledger
         mp      mempool.MemPool
         eaddr   ledger.LedgerAddr
-        cc      chan byte
         trdr    trader.Trader
         waddr   ledger.LedgerAddr
     )
 
     lg = make(ledger.Ledger)
     cc = make(chan byte, 1)
-    
-    mm = miner.CreateMiner(lg, simulationEntityLogBufferSize)
     mp = mempool.CreateMempool(simulationMemoryPoolSize)
-    eaddr = exchange.InitConstantProductExchange("usd", "eth", 2000, 500000000, lg)
-    
+    eaddr = exchange.InitConstantProductExchange("usd", "eth", 2000, 500000000, &lg)
+
     // Initialize CLI User Wallet and Trader //
     rs := []token.TokenReserve {
         token.TokenReserve {
@@ -60,7 +58,9 @@ func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
         },
     }
 
-    waddr = wallet.InitWallet(rs, lg)
+    waddr = wallet.InitWallet(rs, &lg)
+    mm = miner.CreateMiner(simulationEntityLogBufferSize, lg)
+
     trdr = trader.CreateTrader(
         nil, // no strategy for user trader
         10,
@@ -71,7 +71,7 @@ func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
         lg,
     )
 
-    return &Simulation{
+    return &Simulation {
         MaxDur: maxdur,
         RunningDur: 0,
         CancelChan: cc,

@@ -11,29 +11,29 @@ type TokenReserve struct {
 	Amount	float64
 }
 
-func InitTokenReserve(sym string, amt float64, l ledger.Ledger) ledger.LedgerAddr {
+func InitTokenReserve(sym string, amt float64, l *ledger.Ledger) ledger.LedgerAddr {
     var tkraddr ledger.LedgerAddr
     tkraddr = ledger.RandomLedgerAddr()
-    l[tkraddr] = TokenReserve {
+    (*l)[tkraddr] = TokenReserve {
         Symbol: sym,
         Amount: amt,
     }
     return tkraddr
 }
 
-func (lp TokenReserve) Copy() ledger.LedgerItem {
+func (tkr TokenReserve) Copy() ledger.LedgerItem {
 	return TokenReserve {
-		Symbol: lp.Symbol,
-		Amount: lp.Amount,
+		Symbol: tkr.Symbol,
+		Amount: tkr.Amount,
 	}
 }
 
-func (lp TokenReserve) String() string {
-	return fmt.Sprintf("{ sym: \"%v\", amt: %v }", lp.Symbol, lp.Amount)
+func (tkr TokenReserve) String() string {
+	return fmt.Sprintf("{ sym: \"%v\", amt: %v }", tkr.Symbol, tkr.Amount)
 }
 
-func (lp TokenReserve) Hash() [sha256.Size]byte {
-	return sha256.Sum256([]byte(lp.String()))
+func (tkr TokenReserve) Hash() [sha256.Size]byte {
+	return sha256.Sum256([]byte(tkr.String()))
 }
 
 // Note: This is returning a value, NOT casting the memory region at li

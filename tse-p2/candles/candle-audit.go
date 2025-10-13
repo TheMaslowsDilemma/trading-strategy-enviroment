@@ -14,11 +14,11 @@ type CandleAudit struct {
     CandleHistory       CandleCirq
 }
 
-func InitCandleAudit(size uint32, l ledger.Ledger) ledger.LedgerAddr {
+func InitCandleAudit(size uint32, l *ledger.Ledger) ledger.LedgerAddr {
     var laddr ledger.LedgerAddr
 
     laddr = ledger.RandomLedgerAddr()
-    l[laddr] = CandleAudit {
+    (*l)[laddr] = CandleAudit {
         LastActive: 0,
         Constructing: false,
         CurrentCandle: Candle{},

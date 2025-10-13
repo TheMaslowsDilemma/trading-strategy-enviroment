@@ -36,6 +36,6 @@ func (sim *Simulation) iterateMinerTask(tick uint64) {
             // TODO push err log to sim            
         }
 
-        ledger.Merge(sim.Ledger, sim.MainMiner.BackLedger)
+        ledger.Merge(&sim.Ledger, sim.MainMiner.BackLedger)
     }
 }

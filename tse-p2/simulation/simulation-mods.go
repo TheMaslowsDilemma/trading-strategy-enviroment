@@ -1,12 +1,24 @@
 package simulation
 
+import (
+    "fmt"
+    "tse-p2/ledger"
+)
 func (s *Simulation) PlaceUserTrade(from, to string, confidence float64) {
-    (&s.Mempool).PushTx(
-        s.CliTrader.SwapTx(
-            from,
-            to,
-            confidence,
-            s.Ledger,
-        ),
+    var (
+        tx  ledger.Tx
+        err error
     )
+
+    tx, err = s.CliTrader.SwapTx(
+        from,
+        to,
+        confidence,
+        s.Ledger,
+    )
+    if err != nil {
+        fmt.Printf("failed to create tx: %v\n", err)
+        return
+    }
+    (&s.MemoryPool).PushTx(tx)
 }

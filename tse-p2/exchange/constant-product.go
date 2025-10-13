@@ -15,7 +15,7 @@ type ConstantProductExchange struct {
 }
 
 // Need to init against a ledger... so we can create token reserves too
-func InitConstantProductExchange(symbA, symbB string, cntA, cntB float64, l ledger.Ledger) ledger.LedgerAddr {
+func InitConstantProductExchange(symbA, symbB string, cntA, cntB float64, l *ledger.Ledger) ledger.LedgerAddr {
     var (
         exaddr  ledger.LedgerAddr
         ex      ConstantProductExchange
@@ -28,7 +28,7 @@ func InitConstantProductExchange(symbA, symbB string, cntA, cntB float64, l ledg
         CndlAddr: candles.InitCandleAudit(10, l), // NOTE hard coded
     }
 
-    l[exaddr] = ex
+    (*l)[exaddr] = ex
     return exaddr
 }
 

@@ -134,25 +134,29 @@ func RunUserCLI(c int, rdr *bufio.Reader, sim *simulation.Simulation) {
         }
         fmt.Printf("(%v) >> %s\n", c, listr)
     } else if strings.HasPrefix(s, "swap ") {
-        var (
-            idstr   string
-            id      uint64
-            listr   string
-        )
-        // LEFT OFF HERE -- parse float 
-        idstr = strings.TrimSpace(s[len("getitem"):])
-        id, e = strconv.Parse(idstr, 10, 64)
-        if e != nil {
-            fmt.Printf("(%v) >> invalid id for getitem: %v\n", c, e)
-            return
-        }
-        listr, e = sim.GetLedgerItemString(ledger.LedgerAddr(id))
-        if e != nil {
-            fmt.Printf("(%v) >> failed to get item from ledger: %v\n", c, e)
-                return
-        }
-        fmt.Printf("(%v) >> %s\n", c, listr)
-    } else {
+    var (
+        from     string
+        to       string
+        cnfd    float64
+    )
+
+    parts := strings.Fields(s[len("swap "):])
+    if len(parts) != 3 {
+        fmt.Printf("(%v) >> swap requires 3 arguments: from-symbol to-symbol confidence\n", c)
+        return
+    }
+
+    from = parts[0]
+    to = parts[1]
+    cnfd, e = strconv.ParseFloat(parts[2], 64)
+    if e != nil {
+        fmt.Printf("(%v) >> invalid confidence for swap: %v\n", c, e)
+        return
+    }
+
+    sim.PlaceUserTrade(from, to, cnfd)
+    fmt.Printf("(%v) >> swap order placed: %v %s to %s\n", c, cnfd, from, to)
+} else {
         fmt.Printf("(%v) >> unrecognized command \"%s\"\n", c, s)
     }
 }
@@ -160,4 +164,4 @@ func RunUserCLI(c int, rdr *bufio.Reader, sim *simulation.Simulation) {
 var HelpString string = "\n\t\"help\": list of commands" +
     "\n\t\"getdur\": get time duration since simulation start" +
     "\n\t\"getitem <id>\": print value of ledger for <id>" +
-    "\n\t\"swap\" <exg> <from-symbol> <to-symbol> <amount>"
+    "\n\t\"swap\" <from-symbol> <to-symbol> <confidence [0,1]>"
