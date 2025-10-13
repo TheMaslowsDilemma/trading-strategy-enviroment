@@ -20,141 +20,142 @@ type SwapExactTokensForTokensTx struct {
 // Returns a Partial Ledger -- modifications only -- to be merged by the miner.
 func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
     var (
-        exg             *ConstantProductExchange
-        w               *wallet.Wallet
-        waddrO          ledger.LedgerAddr   // wallet tk "out" reserveaddr
-        waddrI          ledger.LedgerAddr   // wallet tk "in"  reserveaddr
-        wtkrO           *token.TokenReserve
-        wtkrI           *token.TokenReserve
-        etkrA           *token.TokenReserve // exchange A reserve
-        etkrB           *token.TokenReserve // exchange B reserve
-        auditer         *candles.CandleAudit // exchange audit
-        price            float64
-        amtO            float64
-        ldgp            ledger.Ledger
-        err             error
+        exchange                  *ConstantProductExchange
+        wlt                       *wallet.Wallet
+        sendReserveAddr           ledger.LedgerAddr
+        recvReserveAddr           ledger.LedgerAddr
+        sendReserve               *token.TokenReserve
+        recvReserve               *token.TokenReserve
+        exchangeReserveA          *token.TokenReserve
+        exchangeReserveB          *token.TokenReserve
+        exchangeCandleAudit       *candles.CandleAudit
+        calculatedPrice           float64
+        amountOut                 float64
+        partialLedger             ledger.Ledger
+        err                       error
     )
 
-    w, err = wallet.WalletFromLedgerItem(l[tx.WalletAddr])
+    wlt, err = wallet.WalletFromLedgerItem(l[tx.WalletAddr])
     if err != nil {
         return nil, fmt.Errorf("failed to cast wallet: %v", err)
     }
     
-    waddrI, err = w.GetReserveAddr(tx.SymbolIn, l)
+    sendReserveAddr, err = wlt.GetReserveAddr(tx.SymbolIn, l)
     if err != nil {
-        return nil, fmt.Errorf("failed to find wallet's source reserve: %v", err)
+        return nil, fmt.Errorf("failed to find wallet's input token reserve: %v", err)
     }
-    wtkrI, err = token.TkrFromLedgerItem(l[waddrI])
+    sendReserve, err = token.TkrFromLedgerItem(l[sendReserveAddr])
     if err != nil {
-        return nil, fmt.Errorf("failed to cast wallet's source reserve %v", err)
-    }
-
-    waddrO, err = w.GetReserveAddr(tx.SymbolOut, l)
-    if err != nil {
-        return nil, fmt.Errorf("failed to find wallet's destination reserve: %v", err)
-    }
-    wtkrO, err = token.TkrFromLedgerItem(l[waddrO])
-    if err != nil {
-        return nil, fmt.Errorf("failed to cast wallet's destination reserve: %v", err)
+        return nil, fmt.Errorf("failed to cast wallet's input token reserve: %v", err)
     }
 
-    exg, err = CpeFromLedgerItem(l[tx.ExchangeAddr])
+    recvReserveAddr, err = wlt.GetReserveAddr(tx.SymbolOut, l)
     if err != nil {
-        return nil, fmt.Errorf("failed to cast exchange: ", err)
+        return nil, fmt.Errorf("failed to find wallet's output token reserve: %v", err)
+    }
+    recvReserve, err = token.TkrFromLedgerItem(l[recvReserveAddr])
+    if err != nil {
+        return nil, fmt.Errorf("failed to cast wallet's output token reserve: %v", err)
     }
 
-    etkrA, err = token.TkrFromLedgerItem(l[exg.TkrAddrA])
+    exchange, err = CpeFromLedgerItem(l[tx.ExchangeAddr])
     if err != nil {
-        return nil, fmt.Errorf("failed to cast exchange's tkr-a: %v", err)
+        return nil, fmt.Errorf("failed to cast exchange: %v", err) // Fixed: was missing %v
     }
 
-    etkrB, err = token.TkrFromLedgerItem(l[exg.TkrAddrB])
+    exchangeReserveA, err = token.TkrFromLedgerItem(l[exchange.TkrAddrA])
     if err != nil {
-        return nil, fmt.Errorf("failed to cast exchange's tkr-b: %v", err)
+        return nil, fmt.Errorf("failed to cast exchange's token reserve A: %v", err)
+    }
+
+    exchangeReserveB, err = token.TkrFromLedgerItem(l[exchange.TkrAddrB])
+    if err != nil {
+        return nil, fmt.Errorf("failed to cast exchange's token reserve B: %v", err)
     }
     
-    auditer, err = candles.CandleAuditFromLedgerItem(l[exg.CndlAddr])
+    exchangeCandleAudit, err = candles.CandleAuditFromLedgerItem(l[exchange.CndlAddr])
     if err != nil {
-        return nil, fmt.Errorf("failed to cast exchange's auditer: %v", err)
+        return nil, fmt.Errorf("failed to cast exchange's candle audit: %v", err)
     }
 
-    if wtkrI.Amount < tx.AmountIn {
+    if sendReserve.Amount < tx.AmountIn {
         return nil, fmt.Errorf("insufficient funds for swap")
     }
     
     // Find out how we want to swap & if we even can
-    if etkrA.Symbol == tx.SymbolIn && etkrB.Symbol == tx.SymbolOut {
-        amtO, err = exg.SwapAForB(l, tx.AmountIn)
+    if exchangeReserveA.Symbol == tx.SymbolIn && exchangeReserveB.Symbol == tx.SymbolOut {
+        amountOut, err = exchange.SwapAForB(l, tx.AmountIn)
         if err != nil {
-            return nil, fmt.Errorf("swap a for b failed: %v", err)
+            return nil, fmt.Errorf("swap A for B failed: %v", err)
         }
 
-        if amtO < tx.AmountMinOut {
-            return nil, fmt.Errorf("swap slippage too high")
+        if amountOut < tx.AmountMinOut {
+            return nil, fmt.Errorf("swap slippage too high: got %f, minimum required %f", amountOut, tx.AmountMinOut)
         }
         
-        // Make the Diff Ledger
-        ldgp = make(ledger.Ledger)
+        // Create partial ledger
+        partialLedger = make(ledger.Ledger)
 
-        // Calculate Price & Audit -- A with respect to B
-        price = amtO / tx.AmountIn
-        auditer.Add(tick, price, tx.AmountIn) // Volume on an exchange is defined by volume of A
+        // Calculate price & audit -- price of A in terms of B
+        calculatedPrice = amountOut / tx.AmountIn
+        exchangeCandleAudit.Add(tick, calculatedPrice, tx.AmountIn) // Volume is input amount (A)
 
-        // Move In Funds to the Exchange
-        wtkrI.Amount -= tx.AmountIn
-        etkrA.Amount += tx.AmountIn
+        // Transfer input tokens: wallet -> exchange
+        sendReserve.Amount -= tx.AmountIn
+        exchangeReserveA.Amount += tx.AmountIn
         
-        // Move Out Funds to the Wallet
-        etkrB.Amount -= amtO
-        wtkrO.Amount += amtO
+        // Transfer output tokens: exchange -> wallet
+        exchangeReserveB.Amount -= amountOut
+        recvReserve.Amount += amountOut
 
-        // Create Diff Ledger & Return
-        ldgp[waddrI] = wtkrI
-        ldgp[waddrO] = wtkrO
-        ldgp[exg.TkrAddrA] = etkrA
-        ldgp[exg.TkrAddrB] = etkrB
-        ldgp[exg.CndlAddr] = auditer // TODO copy?
+        // Create partial ledger entries
+        partialLedger[sendReserveAddr] = sendReserve
+        partialLedger[recvReserveAddr] = recvReserve
+        partialLedger[exchange.TkrAddrA] = exchangeReserveA
+        partialLedger[exchange.TkrAddrB] = exchangeReserveB
         
-        return ldgp, nil
+        // TODO do we even need to do this copy?
+        partialLedger[exchange.CndlAddr] = exchangeCandleAudit
         
-    } else if etkrB.Symbol == tx.SymbolIn && etkrA.Symbol == tx.SymbolOut {
-        amtO, err = exg.SwapBForA(l, tx.AmountIn)
+        return partialLedger, nil
+        
+    } else if exchangeReserveB.Symbol == tx.SymbolIn && exchangeReserveA.Symbol == tx.SymbolOut {
+        amountOut, err = exchange.SwapBForA(l, tx.AmountIn)
         if err != nil {
-            return nil, fmt.Errorf("swap b for a failed: %v", err)
+            return nil, fmt.Errorf("swap B for A failed: %v", err)
         }
 
-        if amtO < tx.AmountMinOut {
-            return nil, fmt.Errorf("swap slippage too high")
+        if amountOut < tx.AmountMinOut {
+            return nil, fmt.Errorf("swap slippage too high: got %f, minimum required %f", amountOut, tx.AmountMinOut)
         }
 
-        // Make the Diff Ledger
-        ldgp = make(ledger.Ledger)
+        // Create partial ledger
+        partialLedger = make(ledger.Ledger)
 
-        // Calculate Price & Audit -- A with respect to B
-        price = tx.AmountIn / amtO // calcuting A with respec to B
-        auditer.Add(tick, price, amtO) // Volume on an exchange is defined by volume of A
+        // Calculate price -- price of A in terms of B (output/input for B->A swap)
+        calculatedPrice = tx.AmountIn / amountOut
+        exchangeCandleAudit.Add(tick, calculatedPrice, amountOut) // Volume is output amount (A)
 
-        // Move In Funds to the Exchange
-        wtkrI.Amount -= tx.AmountIn
-        etkrA.Amount += tx.AmountIn
+        // Transfer input tokens: wallet -> exchange  
+        sendReserve.Amount -= tx.AmountIn
+        exchangeReserveB.Amount += tx.AmountIn // Input goes to reserve B
         
-        // Move Out Funds to the Wallet
-        etkrB.Amount -= amtO
-        wtkrO.Amount += amtO
+        // Transfer output tokens: exchange -> wallet
+        exchangeReserveA.Amount -= amountOut // Output comes from reserve A
+        recvReserve.Amount += amountOut
 
-        // Create Diff Ledger & Return
-        ldgp[waddrI] = wtkrI
-        ldgp[waddrO] = wtkrO
-        ldgp[exg.TkrAddrA] = etkrA
-        ldgp[exg.TkrAddrB] = etkrB
-        ldgp[exg.CndlAddr] = auditer // TODO copy?
+        // Create partial ledger entries
+        partialLedger[sendReserveAddr] = sendReserve
+        partialLedger[recvReserveAddr] = recvReserve
+        partialLedger[exchange.TkrAddrA] = exchangeReserveA
+        partialLedger[exchange.TkrAddrB] = exchangeReserveB
+        
+        // BUG FIX: Create a copy of the audit to avoid mutating original
+        auditCopy := *exchangeCandleAudit
+        partialLedger[exchange.CndlAddr] = &auditCopy
 
-        return ldgp, nil    
+        return partialLedger, nil    
     }
-    return nil, fmt.Errorf("failed to match symbols tx{ %v -> %v } != ex{ %v <-> %v }",
-        tx.SymbolIn,
-        tx.SymbolOut,
-        etkrA.Symbol,
-        etkrB.Symbol,
-    )
+    return nil, fmt.Errorf("symbol mismatch: tx{%s -> %s} != exchange{%s <-> %s}",
+        tx.SymbolIn, tx.SymbolOut, exchangeReserveA.Symbol, exchangeReserveB.Symbol)
 }

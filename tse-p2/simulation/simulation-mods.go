@@ -10,7 +10,7 @@ func (s *Simulation) PlaceUserTrade(from, to string, confidence float64) {
         err error
     )
 
-    tx, err = s.CliTrader.SwapTx(
+    tx, err = s.CliTrader.CreateSwapTransaction(
         from,
         to,
         confidence,

@@ -11,107 +11,114 @@ import (
 )
 
 type Trader struct {
-    ExAddr      ledger.LedgerAddr
-    ExSymA      string
-    ExSymB      string
-    WalletAddr  ledger.LedgerAddr
-    Decider     strategy.Strategy
-    PendingTx   bool
-    Logs        chan string
+    ExchangeAddr    ledger.LedgerAddr
+    ExchangeSymA    string
+    ExchangeSymB    string
+    WalletAddr      ledger.LedgerAddr
+    DecisionStrategy strategy.Strategy
+    HasPendingTx    bool
+    LogChannel      chan string
 }
 
-/** NOTE for now, traders are associated with a specific exchange **/
-func CreateTrader(s strategy.Strategy, ls int, waddr, eaddr ledger.LedgerAddr, symA, symB string, l ledger.Ledger) Trader {
-    var (
-        ptx     bool
-        lgs     chan string
-    )
-    ptx = false
-    lgs = make(chan string, ls)
-
+/** NOTE: Traders are associated with a specific exchange **/
+func CreateTrader(
+    decisionStrategy strategy.Strategy, 
+    logChannelSize int, 
+    walletAddr ledger.LedgerAddr, 
+    exchangeAddr ledger.LedgerAddr, 
+    symbolA, symbolB string, 
+    ledgerState ledger.Ledger,
+) Trader {
     return Trader {
-        ExAddr: eaddr,
-        ExSymA: symA,
-        ExSymB: symB,
-        WalletAddr: waddr,
-        Decider: s,
-        PendingTx: ptx,
-        Logs: lgs,
+        ExchangeAddr:    exchangeAddr,
+        ExchangeSymA:    symbolA,
+        ExchangeSymB:    symbolB,
+        WalletAddr:      walletAddr,
+        DecisionStrategy: decisionStrategy,
+        HasPendingTx:    false,
+        LogChannel:      make(chan string, logChannelSize),
     }
 }
 
-func (t *Trader) MakeDecision(cs []candles.Candle, l ledger.Ledger) ledger.Tx {
-    var (
-        tx  ledger.Tx
-        err error
-    )
-
-    if t.PendingTx {
+func (t *Trader) MakeDecision(candles []candles.Candle, ledgerState ledger.Ledger) ledger.Tx {
+    if t.HasPendingTx {
+        // TODO: Log "Cannot make decision - pending transaction exists"
         return nil
     }
 
-    tx, err = t.getTx(cs, l)
+    transaction, err := t.createTransaction(candles, ledgerState)
     if err != nil {
-        // TODO ? log err
+        // TODO: Log error "Failed to create transaction: %v", err
         return nil
     }
 
-    return tx
+    return transaction
 }
 
-func (t *Trader) getTx(cs []candles.Candle, l ledger.Ledger) (ledger.Tx, error) {
-    var (
-        action strategy.Action
-        confidence float64
-    )
-
-    action, confidence = t.Decider.Decide(cs, l)
+func (t *Trader) createTransaction(candles []candles.Candle, ledgerState ledger.Ledger) (ledger.Tx, error) {
+    tradingAction, confidence := t.DecisionStrategy.Decide(candles, ledgerState)
  
-    switch action {
+    switch tradingAction {
     case strategy.Hold:
         return nil, nil
     case strategy.Buy:
-        return t.SwapTx(t.ExSymA, t.ExSymB, confidence, l)
+        return t.CreateSwapTransaction(t.ExchangeSymA, t.ExchangeSymB, confidence, ledgerState)
     case strategy.Sell:
-        return t.SwapTx(t.ExSymB, t.ExSymA, confidence, l)
+        return t.CreateSwapTransaction(t.ExchangeSymB, t.ExchangeSymA, confidence, ledgerState)
+    default:
+        return nil, fmt.Errorf("unknown trading action: %v", tradingAction)
     }
-    return nil, nil
 }
 
-func (t *Trader) SwapTx(sndSym, rcvSym string, confidence float64, l ledger.Ledger) (ledger.Tx, error) {
-    var (
-        wlt         *wallet.Wallet
-        sndAddr     ledger.LedgerAddr
-        sndTkr      *token.TokenReserve
-        amtIn       float64
-        amtOutMin   float64
-        err         error
-    )
-    
-    wlt, err = wallet.WalletFromLedgerItem(l[t.WalletAddr])
+func (t *Trader) CreateSwapTransaction(
+    inputSymbol, outputSymbol string, 
+    confidence float64, 
+    ledgerState ledger.Ledger,
+) (ledger.Tx, error) {
+    wallet, err := wallet.WalletFromLedgerItem(ledgerState[t.WalletAddr])
     if err != nil {
-         return nil, fmt.Errorf("buytx failed to cast wallet: %v", err)
+        return nil, fmt.Errorf("failed to load wallet: %v", err)
     }
 
-    sndAddr, err = wlt.GetReserveAddr(sndSym, l)
+    inputTokenReserveAddr, err := wallet.GetReserveAddr(inputSymbol, ledgerState)
     if err != nil {
-        return nil, fmt.Errorf("buytx failed to get token reserve: %v", err)
+        return nil, fmt.Errorf("failed to get reserve address for symbol %s: %v", inputSymbol, err)
     }
     
-    sndTkr, err = token.TkrFromLedgerItem(l[sndAddr])
+    inputTokenReserve, err := token.TkrFromLedgerItem(ledgerState[inputTokenReserveAddr])
     if err != nil {
-        return nil, fmt.Errorf("buytx failed to cast sendTkr: %v", err)
+        return nil, fmt.Errorf("failed to load input token reserve for %s: %v", inputSymbol, err)
     }
 
-    amtIn = sndTkr.Amount * confidence
-    amtOutMin = 0 // NOTE fix this in the future to use descrim TODO fix
+    if inputTokenReserve.Amount <= 0 {
+        return nil, fmt.Errorf("no balance available for %s", inputSymbol)
+    }
 
-    return exchange.SwapExactTokensForTokensTx {
-        SymbolIn: sndSym,
-        SymbolOut: rcvSym,
-        AmountIn: amtIn,
-        AmountMinOut: amtOutMin,
-        WalletAddr: t.WalletAddr,
-        ExchangeAddr: t.ExAddr,
-    }, nil
+    inputAmount := inputTokenReserve.Amount * confidence
+    if inputAmount <= 0 {
+        return nil, fmt.Errorf("calculated input amount is zero or negative")
+    }
+
+    if inputTokenReserve.Amount <= inputAmount {
+        return nil, fmt.Errorf("insufficient balance of %s", inputSymbol)
+    }
+
+
+    // BUG FIX: Calculate minimum output using current exchange price
+    // TODO: Implement proper slippage protection using current exchange reserves
+    minimumOutputAmount := 0.0 // Placeholder - needs real calculation
+
+    swapTx := exchange.SwapExactTokensForTokensTx{
+        SymbolIn:     inputSymbol,
+        SymbolOut:    outputSymbol,
+        AmountIn:     inputAmount,
+        AmountMinOut: minimumOutputAmount,
+        WalletAddr:   t.WalletAddr,
+        ExchangeAddr: t.ExchangeAddr,
+    }
+
+    // Set pending transaction flag
+    t.HasPendingTx = true
+    
+    return swapTx, nil
 }
