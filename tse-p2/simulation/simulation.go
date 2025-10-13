@@ -20,7 +20,7 @@ type Simulation struct {
     end         time.Time
     MaxDur      time.Duration
     RunningDur  time.Duration
-    CancelChan  chan byte
+    IsCanceled  bool
     LedgerLock  sync.Mutex
     Ledger      ledger.Ledger
     MainMiner   miner.Miner
@@ -32,7 +32,6 @@ type Simulation struct {
 
 func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
     var (
-        cc      chan byte
         mm      miner.Miner
         lg      ledger.Ledger
         mp      mempool.MemPool
@@ -42,7 +41,6 @@ func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
     )
 
     lg = make(ledger.Ledger)
-    cc = make(chan byte, 1)
     mp = mempool.CreateMempool(simulationMemoryPoolSize)
     eaddr = exchange.InitConstantProductExchange("usd", "eth", 2000, 500000000, &lg)
 
@@ -74,7 +72,7 @@ func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
     return &Simulation {
         MaxDur: maxdur,
         RunningDur: 0,
-        CancelChan: cc,
+        IsCanceled: false,
         Ledger: lg,
         MainMiner: mm,
         MemoryPool: mp,
@@ -92,14 +90,11 @@ func (s *Simulation) Run() {
 
     // Simulation Control Loop
     for {
-        select {
-            case <-s.CancelChan:
-                s.end = time.Now()
-                s.CancelChan <- 0
-                return
-            default:
-                s.Iter()
+        if s.IsCanceled {
+            s.end = time.Now()
+            return
         }
+        s.Iter()
     }
 }
 
@@ -108,7 +103,7 @@ func (s *Simulation) Iter() {
 
     currentd = time.Since(s.start)
     if currentd >= s.MaxDur {
-        s.CancelChan <- 1
+        s.IsCanceled = true
         return
     } else {
         s.RunningDur = currentd

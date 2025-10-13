@@ -12,17 +12,13 @@ func (sim *Simulation) minerTask() {
     var tick uint64 = 0
 
     for {
-    	select {
-    	    case <-sim.CancelChan:
-                return
-    	    default:
-    	        sim.iterateMinerTask(tick)
-    	        break
-    	}
+    	if sim.IsCanceled {
+            return
+        }
+        sim.iterateMinerTask(tick)
         tick += 1
         time.Sleep(timeBetweenMinerIterations)
     }
-
 }
 
 func (sim *Simulation) iterateMinerTask(tick uint64) {

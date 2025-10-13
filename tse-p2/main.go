@@ -16,7 +16,7 @@ func main() {
     var (
         rsd int64
         rdr *bufio.Reader
-        rch chan int
+        cliTick int
         sim *simulation.Simulation
         dur int64
         err error
@@ -48,60 +48,39 @@ func main() {
         return
     }
     
-    rch = make(chan int, 1)
-    rch <- 0
     rdr = bufio.NewReader(os.Stdin)
 
     fmt.Printf("Simulation Created with duration %v\n", sim.MaxDur)
     fmt.Println("Simulation Starting")
     
     go sim.Run()
+    cliTick = 0
     for {
-        select {
-            case <-sim.CancelChan:
-                sim.CancelChan <- 0
-                fmt.Println("Simulation Complete")
-                return
-            default:
-                RunCLI(&rch, rdr, sim)
-                break
-        }
-    }
-}
-
-func RunCLI(rch *(chan int), rdr *bufio.Reader, sim *simulation.Simulation) {
-    var c int
-    select {
-        case c = <-(*rch):
-            RunUserCLI(c, rdr, sim)
-            *rch <- c + 1
-        default:
+        if sim.IsCanceled {
+            fmt.Println("Simulation Complete")
             return
+        }
+        RunCLI(cliTick, rdr, sim)
+        cliTick += 1
     }
 }
 
-func RunUserCLI(c int, rdr *bufio.Reader, sim *simulation.Simulation) {
+
+func RunCLI(c int, rdr *bufio.Reader, sim *simulation.Simulation) {
     var (
-        sc      chan byte
-        s       string
-        e       error
+        s string
+        e error
     )
 
     fmt.Printf("(%v) > ", c)
 
-    sc = make(chan byte, 1)
-    go func() {
-        s, e = rdr.ReadString('\n')
-        sc <- 0
-    }()
+    s, e = rdr.ReadString('\n')
 
-    select {
-        case <-sc:
-            break
-        case <-sim.CancelChan:
-            fmt.Println()
-            return
+    if sim.IsCanceled {
+        fmt.Println()
+        return
     }
+
     if e != nil {
         fmt.Printf("(%v) >> Bad Read\n", c)
     }
@@ -109,7 +88,7 @@ func RunUserCLI(c int, rdr *bufio.Reader, sim *simulation.Simulation) {
     s = strings.Trim(s, " \n")
     if s == "q" {
         fmt.Printf("(%v) >> signaling sim shutdown\n", c)
-        sim.CancelChan <- 1
+        sim.IsCanceled = true
     } else if s == "getdur" {
         fmt.Printf("(%v) >> sim duration: %v\n", c, sim.RunningDur)
     } else if s == "help" {
@@ -134,29 +113,33 @@ func RunUserCLI(c int, rdr *bufio.Reader, sim *simulation.Simulation) {
         }
         fmt.Printf("(%v) >> %s\n", c, listr)
     } else if strings.HasPrefix(s, "swap ") {
-    var (
-        from     string
-        to       string
-        cnfd    float64
-    )
+        var (
+            from     string
+            to       string
+            cnfd    float64
+        )
 
-    parts := strings.Fields(s[len("swap "):])
-    if len(parts) != 3 {
-        fmt.Printf("(%v) >> swap requires 3 arguments: from-symbol to-symbol confidence\n", c)
-        return
-    }
+        parts := strings.Fields(s[len("swap "):])
+        if len(parts) != 3 {
+            fmt.Printf("(%v) >> swap requires 3 arguments: from-symbol to-symbol confidence\n", c)
+            return
+        }
 
-    from = parts[0]
-    to = parts[1]
-    cnfd, e = strconv.ParseFloat(parts[2], 64)
-    if e != nil {
-        fmt.Printf("(%v) >> invalid confidence for swap: %v\n", c, e)
-        return
-    }
+        from = parts[0]
+        to = parts[1]
+        cnfd, e = strconv.ParseFloat(parts[2], 64)
+        if e != nil {
+            fmt.Printf("(%v) >> invalid confidence for swap: %v\n", c, e)
+            return
+        }
 
-    sim.PlaceUserTrade(from, to, cnfd)
-    fmt.Printf("(%v) >> swap order placed: %v %s to %s\n", c, cnfd, from, to)
-} else {
+        e = sim.PlaceUserTrade(from, to, cnfd)
+        if e != nil {
+            fmt.Printf("(%v) >> %v\n", c, e)
+            return
+        }
+        fmt.Printf("(%v) >> swap order placed: %v %s to %s\n", c, cnfd, from, to)
+    } else {
         fmt.Printf("(%v) >> unrecognized command \"%s\"\n", c, s)
     }
 }

@@ -4,7 +4,7 @@ import (
     "fmt"
     "tse-p2/ledger"
 )
-func (s *Simulation) PlaceUserTrade(from, to string, confidence float64) {
+func (s *Simulation) PlaceUserTrade(from, to string, confidence float64) error {
     var (
         tx  ledger.Tx
         err error
@@ -17,8 +17,8 @@ func (s *Simulation) PlaceUserTrade(from, to string, confidence float64) {
         s.Ledger,
     )
     if err != nil {
-        fmt.Printf("failed to create tx: %v\n", err)
-        return
+        return fmt.Errorf("failed to create tx: %v\n", err)
     }
     (&s.MemoryPool).PushTx(tx)
+    return nil
 }

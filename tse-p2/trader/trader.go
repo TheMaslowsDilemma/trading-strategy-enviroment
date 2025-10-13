@@ -99,7 +99,7 @@ func (t *Trader) CreateSwapTransaction(
         return nil, fmt.Errorf("calculated input amount is zero or negative")
     }
 
-    if inputTokenReserve.Amount <= inputAmount {
+    if inputTokenReserve.Amount < inputAmount {
         return nil, fmt.Errorf("insufficient balance of %s", inputSymbol)
     }
 
