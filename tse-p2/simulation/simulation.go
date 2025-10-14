@@ -18,7 +18,6 @@ const simulationEntityLogBufferSize = 10
 type Simulation struct { 
     start       time.Time
     end         time.Time
-    MaxDur      time.Duration
     RunningDur  time.Duration
     IsCanceled  bool
     LedgerLock  sync.Mutex
@@ -30,7 +29,7 @@ type Simulation struct {
     ExAddr      ledger.LedgerAddr
 }
 
-func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
+func CreateSimulation() (*Simulation, error) {
     var (
         mm      miner.Miner
         lg      ledger.Ledger
@@ -42,7 +41,7 @@ func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
 
     lg = make(ledger.Ledger)
     mp = mempool.CreateMempool(simulationMemoryPoolSize)
-    eaddr = exchange.InitConstantProductExchange("usd", "eth", 2000, 500000000, &lg)
+    eaddr = exchange.InitConstantProductExchange("usd", "eth", 1000, 50000, &lg)
 
     // Initialize CLI User Wallet and Trader //
     rs := []token.TokenReserve {
@@ -70,7 +69,6 @@ func CreateSimulation(maxdur time.Duration) (*Simulation, error) {
     )
 
     return &Simulation {
-        MaxDur: maxdur,
         RunningDur: 0,
         IsCanceled: false,
         Ledger: lg,
@@ -100,13 +98,7 @@ func (s *Simulation) Run() {
 
 func (s *Simulation) Iter() {
     var currentd time.Duration
-
     currentd = time.Since(s.start)
-    if currentd >= s.MaxDur {
-        s.IsCanceled = true
-        return
-    } else {
-        s.RunningDur = currentd
-    }
+    s.RunningDur = currentd
 }
 

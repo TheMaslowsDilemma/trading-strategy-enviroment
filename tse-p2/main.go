@@ -7,7 +7,6 @@ import (
     "html/template"
     "math/rand"
     "net/http"
-    "os"
     "strconv"
     "strings"
     "sync"
@@ -32,7 +31,6 @@ func main() {
     var (
         rsd     int64
         sim     *simulation.Simulation
-        dur     int64
         err     error
         addr    string
     )
@@ -47,18 +45,9 @@ func main() {
     fmt.Printf("seed: %v\n", rsd)
     fmt.Println("---------------------------------------")
 
-    if len(os.Args) < 2 {
-        fmt.Println("usage: go run . <duration-in-seconds>")
-        return
-    }
 
-    dur, err = strconv.ParseInt(os.Args[1], 10, 64)
-    if err != nil {
-        fmt.Printf("Failed to parse duration: %v\n", err)
-        return
-    }
 
-    sim, err = simulation.CreateSimulation(time.Duration(dur) * time.Second)
+    sim, err = simulation.CreateSimulation()
 
     fmt.Printf("init:\n--> user-wallet: %v\n--> mainexchange: %v\n\n", sim.CliWallet, sim.ExAddr)
 
@@ -67,13 +56,8 @@ func main() {
         return
     }
 
-    fmt.Printf("Simulation Created with duration %v\n", sim.MaxDur)
-    fmt.Println("Simulation Starting")
-
     go sim.Run()
 
-    // Start the web server in a goroutine
-    
     http.HandleFunc("/", homeHandler)
     http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
         wsHandler(w, r, sim)
@@ -85,7 +69,6 @@ func main() {
 
 }
 
-// homeHandler serves the HTML page with the chart and input
 func homeHandler(w http.ResponseWriter, r *http.Request) {
     tmpl.Execute(w, nil)
 }
@@ -185,7 +168,7 @@ var tmpl = template.Must(template.New("home").Parse(`
 </head>
 <body>
     <div class="container">
-        <h1>📈 Trading Simulation Dashboard</h1>
+        <h1>Trading Simulation</h1>
         
         <div class="stats">
             <div class="stat-item">
@@ -208,7 +191,7 @@ var tmpl = template.Must(template.New("home").Parse(`
         
         <div id="command-input">
             <h3>Command Interface</h3>
-            <input type="text" id="command" placeholder="Enter command (e.g., swap A B 0.5, getdur, help)" />
+            <input type="text" autocorrect="off" id="command" placeholder="Enter command (e.g., swap A B 0.5, getdur, help)" />
             <button onclick="sendCommand()">Execute</button>
             <div style="margin-top: 10px; font-size: 12px; opacity: 0.8;">
                 Type 'help' for available commands

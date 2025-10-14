@@ -79,12 +79,12 @@ func (cq *CandleCirq) CandlesInOrder() []Candle {
         return []Candle{}
     }
     
-    result = make([]Candle, cq.Cnt)
+    cs = make([]Candle, cq.Cnt)
     st = (cq.Cap - cq.Cnt + cq.Fnt) % cq.Cap
     
-    for i := uint32(0); i < cq.Cnt; i++ {
-        result[i] = cq.Cs[(st + i) % cq.Cap].Copy()
+    for i = 0; i < cq.Cnt; i++ {
+        cs[i] = cq.Cs[(st + i) % cq.Cap].Copy()
     }
     
-    return result
+    return cs
 }
