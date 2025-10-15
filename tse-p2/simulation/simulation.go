@@ -27,6 +27,7 @@ type Simulation struct {
     CliTrader   trader.Trader
     CliWallet   ledger.LedgerAddr
     ExAddr      ledger.LedgerAddr
+    CandleNotifier func()
 }
 
 func CreateSimulation() (*Simulation, error) {

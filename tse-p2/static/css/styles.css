@@ -1,0 +1,43 @@
+body {
+    background-color: #fafafa;
+    color: black;
+    font-family: monospace;
+    margin: 20px;
+}
+
+h1 {
+    text-align: center;
+}
+
+#chart {
+    width: 800px;
+    height: 600px;
+    border: 1px solid black;
+    margin: 0 auto;
+}
+
+input {
+    background-color: #fafafa;
+    color: black;
+    border: 1px solid black;
+    font-family: monospace;
+    padding: 5px;
+    width: 300px;
+}
+
+button {
+    background-color: #fafafa;
+    color: black;
+    border: 1px solid black;
+    font-family: monospace;
+    padding: 5px 10px;
+}
+
+pre {
+    border: 1px solid black;
+    padding: 10px;
+    overflow: auto;
+    height: 200px;
+    width: 800px;
+    margin: 10px auto;
+}

@@ -96,8 +96,11 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
         // Create partial ledger
         partialLedger = make(ledger.Ledger)
 
-        // Calculate price & audit -- price of A in terms of B
-        calculatedPrice = tx.AmountIn / amountOut
+        // Calculate price & audit -- price of B in terms of A
+        calculatedPrice, err = exchange.GetPriceA(l)
+        if err != nil {
+            return nil, err
+        }
         exchangeCandleAudit.Add(tick, calculatedPrice, tx.AmountIn) // Volume is input amount (A)
 
         // Transfer input tokens: wallet -> exchange
@@ -132,8 +135,11 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
         // Create partial ledger
         partialLedger = make(ledger.Ledger)
 
-        // Calculate price -- price of A in terms of B (output/input for B->A swap)
-        calculatedPrice = amountOut / tx.AmountIn
+        // Calculate price -- price of B in terms of A (output/input for B->A swap)
+        calculatedPrice, err = exchange.GetPriceA(l)
+        if err != nil {
+            return nil, err
+        }
         exchangeCandleAudit.Add(tick, calculatedPrice, amountOut) // Volume is output amount (A)
 
         // Transfer input tokens: wallet -> exchange  

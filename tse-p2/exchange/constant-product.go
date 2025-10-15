@@ -53,9 +53,19 @@ func (cpe ConstantProductExchange) Hash() [sha256.Size]byte {
     return sha256.Sum256([]byte(cpe.String()))
 }
 
-func (cpe ConstantProductExchange) GetPriceA(l ledger.Ledger) {
-    // TODO use the ledger to get both token reserves
-    // use A / B to get A per b
+func (cpe ConstantProductExchange) GetPriceA(l ledger.Ledger) (float64, error) {
+    tkrA, err := token.TkrFromLedgerItem(l[cpe.TkrAddrA])
+    if err != nil {
+        return 0, fmt.Errorf("tkrA failed: %v", err)
+    }
+    tkrB, err := token.TkrFromLedgerItem(l[cpe.TkrAddrB])
+    if err != nil {
+        return 0, fmt.Errorf("tkrB failed: %v", err)
+    }
+    if tkrA.Amount == 0 {
+        return 0, fmt.Errorf("token A reserve is zero")
+    }
+    return tkrB.Amount / tkrA.Amount, nil
 }
 
 func (cpe ConstantProductExchange) SwapAForB(l ledger.Ledger, ain float64) (float64, error) {

@@ -43,29 +43,30 @@ func (m *Miner) PushLog(log string) {
     }
 }
 
-func (m *Miner) MineNextBlock(tick uint64, mpl *mempool.MemPool) error {
+func (m *Miner) MineNextBlock(tick uint64, mpl *mempool.MemPool) (uint, error) {
     var (
         txs     []ledger.Tx
         tx      ledger.Tx
         lgp     ledger.Ledger
+        ftcount uint
         err     error
     )
 
     txs, err = createTxBlock(mpl)
     if err != nil {
-        return fmt.Errorf("failed create txs: %v", err)
+        return 0, fmt.Errorf("failed create txs: %v", err)
     }
 
     for _, tx = range txs {
         lgp, err = tx.Apply(tick, m.BackLedger)
         if err != nil {
-            fmt.Printf("tx apply failed, skipping: %v", err)
+            // NOTE we could log here
             continue
         }
-        ledger.Merge(&m.BackLedger, lgp)
+        ftcount += ledger.Merge(&m.BackLedger, lgp)
     }
 
-    return nil
+    return ftcount, nil
 }
 
 func createTxBlock(mpl *mempool.MemPool) ([]ledger.Tx, error) {
