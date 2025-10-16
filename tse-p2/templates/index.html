@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Simulation</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="/static/js/graph-ws.js"></script>
+</head>
+<body>
+    <h1>Trading Strategy Environment: Part Two</h1>
+    <h4>Wallet Address: {{.Wallet}}</h4>
+    <h4>Exchange Address: {{.ExAddr}}</h4>
+    <div id="chart"></div>
+
+    <hr>
+
+    <div id='command-interface'>
+        <input type="text" id="command" autocomplete="off" placeholder="Enter command (type 'help' for commands)">
+        <button id="send-btn">Send</button>
+        <div id="response"></div>
+    </div>
+
+</body>
+</html>

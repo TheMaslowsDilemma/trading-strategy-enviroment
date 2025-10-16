@@ -13,7 +13,6 @@ type Simulator struct {
 	Position float64
 	Strategy strategy.Strategy
 	TradeFee float64
-	
 }
 
 func NewSimulator(initialBalance float64, strategy strategy.Strategy, tradeFee float64) *Simulator {
