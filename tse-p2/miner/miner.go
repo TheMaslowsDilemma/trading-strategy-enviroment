@@ -60,7 +60,7 @@ func (m *Miner) MineNextBlock(tick uint64, mpl *mempool.MemPool) (uint, error) {
     for _, tx = range txs {
         lgp, err = tx.Apply(tick, m.BackLedger)
         if err != nil {
-            // NOTE we could log here
+            fmt.Printf("error applying tx: %v\n", err)
             continue
         }
         ftcount += ledger.Merge(&m.BackLedger, lgp)

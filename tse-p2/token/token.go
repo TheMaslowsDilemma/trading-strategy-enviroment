@@ -51,5 +51,5 @@ func TkrFromLedgerItem(li ledger.LedgerItem) (*TokenReserve, error) {
         return &tkr, nil
     }
 
-    return nil, fmt.Errorf("cannot cast tkr from non-tkr ledger item.")
+    return nil, fmt.Errorf("cannot cast tkr from non-tkr ledger item (%v)", li.String())
 }

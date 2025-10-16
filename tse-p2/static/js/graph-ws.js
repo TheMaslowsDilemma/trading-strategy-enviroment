@@ -26,7 +26,6 @@ document.addEventListener('DOMContentLoaded', function() {
     ws.onmessage = function(event) {
         const msg = JSON.parse(event.data);
         if (msg.type === 'candles') {
-            responseDiv.innerText += msg.data;
             plotCandles(msg.data);
         } else if (msg.type === 'response') {
             responseDiv.innerText += msg.message + '\n';
@@ -107,7 +106,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Create group for each candle
         const g = svg.append("g")
-            .attr("stroke-linecap", "round")
             .attr("stroke", "black")
             .selectAll("g")
             .data(data)
@@ -118,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
         g.append("line")
             .attr("y1", d => y(d.low))
             .attr("y2", d => y(d.high))
-            .attr("stroke-width", 1); // Thin wicks
+            .attr("stroke-width", 2); // Thin wicks
 
         // Bodies (open-close rectangles)
         g.append("rect")
