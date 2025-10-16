@@ -46,51 +46,49 @@ document.addEventListener('DOMContentLoaded', function() {
         const width = 960 - margin.left - margin.right;
         const height = 500 - margin.top - margin.bottom;
 
-        /*** Create SVG container // andredumas/ techanJS OHLC ***/
-        const svg = d3.select(chartDiv)
-            .append("svg")
-            .append("width", width + margin.left + margin.right)
-            .append("height", height + margin.top + margin.bottom)
-            .style("background", "#ffffff")
-            .append("g")
-            .attr("transform", `translate(${margin.left},${margin.top})`);
-
+        // Parse data
         const data = candles.map(c => ({
-            date: +c.TimeStamp,
+            ts: +c.TimeStamp,
             open: +c.Open,
             high: +c.High,
             low: +c.Low,
             close: +c.Close,
             volume: +c.Volume
-        })).sort((a, b) => a.date - b.date);
+        })).sort((a, b) => a.ts - b.ts);
 
+        // Create SVG container
+        const svg = d3.select(chartDiv)
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .style("background", "#ffffff")
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
 
-        // Positional encodings
+        // Scales
         const x = d3.scaleLinear()
-            .domain(data.map(d => d.date))
-            .range([0, width])
-            .padding(1);
+            .domain([d3.min(data, d => d.ts), d3.max(data, d => d.ts)])
+            .range([0, width]);
 
         const y = d3.scaleLinear()
             .domain([d3.min(data, d => d.low), d3.max(data, d => d.high)])
-            .rangeRound([height, margin.top])
+            .range([height, 0])
             .nice();
 
-        // X AXIS //
+        // Axes
         svg.append("g")
             .attr("class", "x-axis")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x));
 
-        // Y AXIS //
         svg.append("g")
             .attr("class", "y-axis")
-            .call(d3.asixLeft(y));
-        
+            .call(d3.axisLeft(y));
+
         // Title
         svg.append("text")
             .attr("x", width / 2)
-            .attr("y", 0)
+            .attr("y", -20)
             .attr("text-anchor", "middle")
             .attr("fill", "black")
             .text("Sim Candles");
@@ -104,27 +102,33 @@ document.addEventListener('DOMContentLoaded', function() {
             .attr("text-anchor", "middle")
             .text("Price");
 
+        // Calculate candle width (based on number of candles)
+        const candleWidth = Math.min(10, width / data.length * 0.8); // Max 10px, 80% of available space per candle
+
         // Create group for each candle
         const g = svg.append("g")
             .attr("stroke", "black")
             .selectAll("g")
             .data(data)
             .join("g")
-            .attr("transform", d => `translate(${x(d.date)},0)`);
+            .attr("transform", d => `translate(${x(d.ts)},0)`);
 
         // Wicks (high-low lines)
         g.append("line")
             .attr("y1", d => y(d.low))
             .attr("y2", d => y(d.high))
-            .attr("stroke-width", 2); // Thin wicks
+            .attr("stroke", "black")
+            .attr("stroke-width", 1);
 
         // Bodies (open-close rectangles)
         g.append("rect")
-            .attr("x", -x.bandwidth() / 2) // Center the rectangle
+            .attr("x", -candleWidth / 2)
             .attr("y", d => y(Math.max(d.open, d.close)))
-            .attr("height", d => Math.abs(y(d.open) - y(d.close)) || 1) // Minimum height for flat candles
-            .attr("width", x.bandwidth() * 0.8) // Slightly narrower candles
-            .attr("fill", d => d.open > d.close ? d3.schemeSet1[0] : d3.schemeSet1[2]);
+            .attr("height", d => Math.abs(y(d.open) - y(d.close)) || 1)
+            .attr("width", candleWidth)
+            .attr("fill", d => d.open > d.close ? "#000000" : "#ffffff")
+            .attr("stroke", "black")
+            .attr("stroke-width", 1);
 
         // Tooltips
         const formatDate = d3.timeFormat("%B %-d, %Y");
@@ -132,7 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const formatChange = ((f) => (y0, y1) => f((y1 - y0) / y0))(d3.format("+.2%"));
 
         g.append("title")
-            .text(d => `${formatDate(d.date)}
+        .text(d => `Ts:${d.ts}
 Open: ${formatValue(d.open)}
 Close: ${formatValue(d.close)} (${formatChange(d.open, d.close)})
 Low: ${formatValue(d.low)}

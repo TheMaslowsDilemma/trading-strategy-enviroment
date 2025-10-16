@@ -10,10 +10,8 @@ h1 {
 }
 
 #chart {
-    width: 800px;
-    height: 600px;
-    border: 1px solid black;
-    margin: 0 auto;
+    margin-left: auto;
+    margin-right: audo;
 }
 
 #command-interface {
