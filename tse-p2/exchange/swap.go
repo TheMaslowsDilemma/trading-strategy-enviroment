@@ -115,7 +115,7 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
         partialLedger[exchange.TkrAddrB] = *exchangeReserveB
         
         // Calculate new price, for this updated Ledger
-        calculatedPrice, err = exchange.GetPriceA(partialLedger)
+        calculatedPrice, err = exchange.GetPriceB(partialLedger)
         if err != nil {
             return nil, err
         } 
@@ -156,7 +156,7 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
         partialLedger[exchange.TkrAddrB] = *exchangeReserveB
         
         // Calculate price -- price of B in terms of A (output/input for B->A swap)
-        calculatedPrice, err = exchange.GetPriceA(partialLedger)
+        calculatedPrice, err = exchange.GetPriceB(partialLedger)
         if err != nil {
             return nil, err
         }

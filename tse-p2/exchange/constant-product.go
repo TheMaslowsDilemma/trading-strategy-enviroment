@@ -68,6 +68,29 @@ func (cpe ConstantProductExchange) GetPriceA(l ledger.Ledger) (float64, error) {
     return tkrB.Amount / tkrA.Amount, nil
 }
 
+func (cpe ConstantProductExchange) GetPriceB(l ledger.Ledger) (float64, error) {
+    var (
+        tkra    *token.TokenReserve
+        tkrb    *token.TokenReserve
+        err     error
+    )
+
+    tkrb, err = token.TkrFromLedgerItem(l[cpe.TkrAddrB])
+    if err != nil {
+        return 0, fmt.Errorf("failed to cast tkr b: %v", err)
+    }
+
+    tkra, err = token.TkrFromLedgerItem(l[cpe.TkrAddrA])
+    if err != nil {
+        return 0, fmt.Errorf("failed to cast tkr a: %v", err)
+    }
+
+    if tkra.Amount == 0 {
+        return 0, fmt.Errorf("tkr a amount is zero")
+    }
+    return tkra.Amount / tkrb.Amount, nil
+}
+
 func (cpe ConstantProductExchange) SwapAForB(l ledger.Ledger, ain float64) (float64, error) {
     var (
         tkrA    *token.TokenReserve

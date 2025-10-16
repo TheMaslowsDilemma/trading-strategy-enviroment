@@ -1,14 +1,14 @@
 package token
 
 import (
-	"fmt"
+    "fmt"
     "tse-p2/ledger"
     "crypto/sha256"
 )
 
 type TokenReserve struct {
 	Symbol	string
-	Amount	float64
+	Amount	
 }
 
 func InitTokenReserve(sym string, amt float64, l *ledger.Ledger) ledger.LedgerAddr {
