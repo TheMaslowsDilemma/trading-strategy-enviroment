@@ -1,8 +1,13 @@
 body {
     background-color: #ffffff;
-    color: black;
+    color: #000000;
     font-family: monospace;
     margin: 20px;
+}
+
+body.dark-mode {
+    background-color: #1a1a1a;
+    color: #ffffff;
 }
 
 h1 {
@@ -10,42 +15,122 @@ h1 {
 }
 
 #chart {
+    display: block;
+    width: 80%;
     margin-left: auto;
-    margin-right: audo;
+    margin-right: auto;
+}
+
+#chart svg {
+    margin-left: auto;
+    margin-right: auto;
+    background: #ffffff;
+}
+
+body.dark-mode #chart svg {
+    background: #1a1a1a;
+}
+
+#chart .x-axis path,
+#chart .x-axis line,
+#chart .y-axis path,
+#chart .y-axis line {
+    stroke: #000000;
+    stroke-width: 0.5px; /* Thinner axis lines */
+}
+
+#chart text {
+    fill: #000000;
+}
+
+body.dark-mode #chart .x-axis path,
+body.dark-mode #chart .x-axis line,
+body.dark-mode #chart .y-axis path,
+body.dark-mode #chart .y-axis line {
+    stroke: #ffffff;
+    stroke-width: 0.5px; /* Thinner axis lines for dark mode */
+}
+
+body.dark-mode #chart text {
+    fill: #ffffff;
+}
+
+#chart .candle-rect {
+    stroke: #000000;
+}
+
+body.dark-mode #chart .candle-rect {
+    stroke: #ffffff;
 }
 
 #command-interface {
-    width: 50%;
+    width: 40%;
     margin-left: auto;
     margin-right: auto;
     justify-content: center;
-    align-items: center;
+    align-items: left;
 }
 
-#response-box {
-    border: 2px solid black;
-    padding: 4px;
+body.dark-mode #response {
+    border: 2px solid #ffffff;
+    margin-top: 5px;
+    padding: 5px;
+}
+
+body #response {
+    border: 2px solid #000000;
+    margin-top: 5px;
+    padding: 5px;
+}
+
+body.dark-mode #response-box {
+    border-color: #ffffff;
 }
 
 input {
     background-color: #ffffff;
-    color: black;
-    border: 2px solid black;
+    color: #000000;
+    border: 2px solid #000000;
     font-family: monospace;
     padding: 10px;
-    width: 300px;
+    width: 80%;
+    outline: none;
+}
+
+body.dark-mode input {
+    background-color: #333333;
+    color: #ffffff;
+    border-color: #ffffff;
+    border: 2px solid #ffffff;
 }
 
 button {
     background-color: #ffffff;
-    color: black;
-    border: 2px solid black;
+    color: #000000;
+    border: 2px solid #000000;
     font-family: monospace;
-    padding: 10px 10px;
+    padding: 10px;
+}
+
+body.dark-mode button {
+    background-color: #333333;
+    color: #ffffff;
+    border-color: #ffffff;
+    border: 2px solid #ffffff;
+}
+
+#theme-toggle {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    font-size: 16px;
+    border: 2px solid;
+    background: none;
+    padding: 10px;
 }
 
 pre {
-    border: 1px solid black;
+    border: 1px solid #000000;
     padding: 10px;
     overflow: auto;
     height: 200px;
@@ -53,4 +138,6 @@ pre {
     margin: 10px auto;
 }
 
-
+body.dark-mode pre {
+    border-color: #ffffff;
+}

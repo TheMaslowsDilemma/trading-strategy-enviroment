@@ -42,7 +42,7 @@ func CreateSimulation() (*Simulation, error) {
 
     lg = make(ledger.Ledger)
     mp = mempool.CreateMempool(simulationMemoryPoolSize)
-    eaddr = exchange.InitConstantProductExchange("usd", "eth", 1000000, 50000000, &lg)
+    eaddr = exchange.InitConstantProductExchange("usd", "eth", 10000, 500000, &lg)
 
     // Initialize CLI User Wallet and Trader //
     rs := []token.TokenReserve {

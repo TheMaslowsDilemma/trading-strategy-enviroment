@@ -15,6 +15,8 @@ type Candle struct {
 
 func (c *Candle) Start(price float64, volume float64, ts uint64) {
     c.Open = price
+    c.Low = price
+    c.High = price
     c.TimeStamp = ts
     c.Add(price, volume)
 }

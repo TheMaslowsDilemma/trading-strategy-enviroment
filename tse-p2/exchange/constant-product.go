@@ -107,8 +107,8 @@ func (cpe ConstantProductExchange) SwapAForB(l ledger.Ledger, ain float64) (floa
     if err != nil {
         return 0, fmt.Errorf("tkrB failed: %v", err)
     }
-
-    return (tkrA.Amount * tkrB.Amount) / (tkrA.Amount + ain), nil
+    // tkA * tkB = (tkA + aIn) * (tkB - bOut) ==> tkA * tkB / (tkA + )
+    return tkrB.Amount - ((tkrA.Amount * tkrB.Amount) / (tkrA.Amount + ain)), nil
 }
 
 
@@ -130,7 +130,7 @@ func (cpe ConstantProductExchange) SwapBForA(l ledger.Ledger, bin float64) (floa
     }
 
     // k = B * A // k is constant
-    return (tkrB.Amount * tkrA.Amount) / (tkrB.Amount + bin), nil
+    return tkrA.Amount - ((tkrB.Amount * tkrA.Amount) / (tkrB.Amount + bin))    , nil
 }
 
 func CpeFromLedgerItem(li ledger.LedgerItem) (*ConstantProductExchange, error) {

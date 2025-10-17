@@ -4,6 +4,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const responseDiv = document.getElementById('response');
     const commandInput = document.getElementById('command');
     const sendBtn = document.getElementById('send-btn');
+    const themeToggle = document.getElementById('theme-toggle');
+
+    // Theme toggle functionality
+    themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+        themeToggle.textContent = document.body.classList.contains('dark-mode') ? 'Light' : 'Dark';
+        localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+    });
+
+    // Load saved theme
+    if (localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+        themeToggle.textContent = 'Light';
+    } else {
+        themeToggle.textContent = 'Dark';
+    }
 
     sendBtn.onclick = function() {
         const cmd = commandInput.value.trim();
@@ -61,7 +77,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .append("svg")
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
-            .style("background", "#ffffff")
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
@@ -90,44 +105,40 @@ document.addEventListener('DOMContentLoaded', function() {
             .attr("x", width / 2)
             .attr("y", -20)
             .attr("text-anchor", "middle")
-            .attr("fill", "black")
             .text("Sim Candles");
 
         // Y-axis label
         svg.append("text")
             .attr("transform", "rotate(-90)")
-            .attr("y", -margin.left + 10)
+            .attr("y", 8 + -margin.left)
             .attr("x", -height / 2)
-            .attr("fill", "black")
             .attr("text-anchor", "middle")
             .text("Price");
 
-        // Calculate candle width (based on number of candles)
-        const candleWidth = Math.min(10, width / data.length * 0.8); // Max 10px, 80% of available space per candle
+        // Calculate candle width
+        const candleWidth = Math.min(10, width / data.length * 0.5);
 
         // Create group for each candle
         const g = svg.append("g")
-            .attr("stroke", "black")
             .selectAll("g")
             .data(data)
             .join("g")
             .attr("transform", d => `translate(${x(d.ts)},0)`);
 
-        // Wicks (high-low lines)
+        // Wicks
         g.append("line")
             .attr("y1", d => y(d.low))
             .attr("y2", d => y(d.high))
-            .attr("stroke", "black")
             .attr("stroke-width", 1);
 
-        // Bodies (open-close rectangles)
+        // Bodies
         g.append("rect")
+            .attr("class", "candle-rect")
             .attr("x", -candleWidth / 2)
             .attr("y", d => y(Math.max(d.open, d.close)))
             .attr("height", d => Math.abs(y(d.open) - y(d.close)) || 1)
             .attr("width", candleWidth)
             .attr("fill", d => d.open > d.close ? "#000000" : "#ffffff")
-            .attr("stroke", "black")
             .attr("stroke-width", 1);
 
         // Tooltips
@@ -136,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const formatChange = ((f) => (y0, y1) => f((y1 - y0) / y0))(d3.format("+.2%"));
 
         g.append("title")
-        .text(d => `Ts:${d.ts}
+            .text(d => `Ts:${d.ts}
 Open: ${formatValue(d.open)}
 Close: ${formatValue(d.close)} (${formatChange(d.open, d.close)})
 Low: ${formatValue(d.low)}

@@ -9,16 +9,17 @@
     <script src="/static/js/graph-ws.js"></script>
 </head>
 <body>
+    <button id="theme-toggle" aria-label="Toggle theme">Light</button>
     <h1>Trading Strategy Environment: Part Two</h1>
     <h4>Wallet Address: {{.Wallet}}</h4>
     <h4>Exchange Address: {{.ExAddr}}</h4>
     <div id="chart"></div>
 
-    <hr>
 
-    <div id='command-interface'>
+    <div id="command-interface">
         <input type="text" id="command" autocomplete="off" placeholder="Enter command (type 'help' for commands)">
         <button id="send-btn">Send</button>
+        
         <div id="response"></div>
     </div>
 

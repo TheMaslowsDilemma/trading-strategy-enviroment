@@ -49,6 +49,8 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
         return nil, fmt.Errorf("failed to cast wallet's input token reserve: %v", err)
     }
 
+    fmt.Printf("before: sendReserve %v \n", sendReserve)
+
     recvReserveAddr, err = wlt.GetReserveAddr(tx.SymbolOut, l)
     if err != nil {
         return nil, fmt.Errorf("failed to find wallet's output token reserve: %v", err)
@@ -57,6 +59,9 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
     if err != nil {
         return nil, fmt.Errorf("failed to cast wallet's output token reserve: %v", err)
     }
+
+    fmt.Printf("before: recvReserve %v \n", recvReserve)
+
 
     exchange, err = CpeFromLedgerItem(l[tx.ExchangeAddr])
     if err != nil {
@@ -68,6 +73,8 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
     if err != nil {
         return nil, fmt.Errorf("failed to cast exchange's token reserve A: %v", err)
     }
+    fmt.Printf("before: exchangeReserveA %v \n", exchangeReserveA)
+
     //exchangeReserveA = (*exchangeReserveA).Copy()
 
     exchangeReserveB, err = token.TkrFromLedgerItem(l[exchange.TkrAddrB])
@@ -75,6 +82,7 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
         return nil, fmt.Errorf("failed to cast exchange's token reserve B: %v", err)
     }
     //exchangeReserveB = (*exchangeReserveB).Copy()
+    fmt.Printf("before: exchangeReserveB %v \n", exchangeReserveB)
     
     exchangeCandleAudit, err = candles.CandleAuditFromLedgerItem(l[exchange.CndlAddr])
     if err != nil {
@@ -86,6 +94,8 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
     }
     
     // Find out how we want to swap & if we even can
+    
+    partialLedger = make(ledger.Ledger)
     if exchangeReserveA.Symbol == tx.SymbolIn && exchangeReserveB.Symbol == tx.SymbolOut {
         amountOut, err = exchange.SwapAForB(l, tx.AmountIn)
         if err != nil {
@@ -95,10 +105,12 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
         if amountOut < tx.AmountMinOut {
             return nil, fmt.Errorf("swap slippage too high: got %f, minimum required %f", amountOut, tx.AmountMinOut)
         }
+
+        if amountOut > exchangeReserveB.Amount {
+            return nil, fmt.Errorf("swap output greater then exchange B reserve, %v > %v", amountOut, exchangeReserveB.Amount)
+        }
        
         fmt.Printf("applying swap: %v %v -> %v %v\n", tx.SymbolIn, tx.AmountIn, tx.SymbolOut, amountOut)
-        // Create partial ledger
-        partialLedger = make(ledger.Ledger)
 
         // Transfer input tokens: wallet -> exchange
         sendReserve.Amount -= tx.AmountIn
@@ -107,26 +119,6 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
         // Transfer output tokens: exchange -> wallet
         exchangeReserveB.Amount -= amountOut
         recvReserve.Amount += amountOut
-
-        // Create partial ledger entries
-        partialLedger[sendReserveAddr] = *sendReserve
-        partialLedger[recvReserveAddr] = *recvReserve
-        partialLedger[exchange.TkrAddrA] = *exchangeReserveA
-        partialLedger[exchange.TkrAddrB] = *exchangeReserveB
-        
-        // Calculate new price, for this updated Ledger
-        calculatedPrice, err = exchange.GetPriceB(partialLedger)
-        if err != nil {
-            return nil, err
-        } 
-        exchangeCandleAudit.Add(tick, calculatedPrice, tx.AmountIn) // Volume is input amount (A)
-        fmt.Printf("new price: %v\n", calculatedPrice)
-
-        // TODO do we even need to do this copy?
-        partialLedger[exchange.CndlAddr] = exchangeCandleAudit
-        
-        return partialLedger, nil
-        
     } else if exchangeReserveB.Symbol == tx.SymbolIn && exchangeReserveA.Symbol == tx.SymbolOut {
         amountOut, err = exchange.SwapBForA(l, tx.AmountIn)
         if err != nil {
@@ -137,9 +129,11 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
             return nil, fmt.Errorf("swap slippage too high: got %f, minimum required %f", amountOut, tx.AmountMinOut)
         }
 
+        if amountOut > exchangeReserveA.Amount {
+            return nil, fmt.Errorf("swap output greater then exchange A reserve, %v > %v", amountOut, exchangeReserveA.Amount)
+        }
+
         fmt.Printf("applying swap: %v %v -> %v %v\n", tx.SymbolIn, tx.AmountIn, tx.SymbolOut, amountOut)
-        // Create partial ledger
-        partialLedger = make(ledger.Ledger)
 
         // Transfer input tokens: wallet -> exchange  
         sendReserve.Amount -= tx.AmountIn
@@ -148,25 +142,30 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
         // Transfer output tokens: exchange -> wallet
         exchangeReserveA.Amount -= amountOut // Output comes from reserve A
         recvReserve.Amount += amountOut
-
-        // Create partial ledger entries
-        partialLedger[sendReserveAddr] = *sendReserve
-        partialLedger[recvReserveAddr] = *recvReserve
-        partialLedger[exchange.TkrAddrA] = *exchangeReserveA
-        partialLedger[exchange.TkrAddrB] = *exchangeReserveB
-        
-        // Calculate price -- price of B in terms of A (output/input for B->A swap)
-        calculatedPrice, err = exchange.GetPriceB(partialLedger)
-        if err != nil {
-            return nil, err
-        }
-        exchangeCandleAudit.Add(tick, calculatedPrice, amountOut) // Volume is output amount (A)
-
-        fmt.Printf("new price: %v\n", calculatedPrice)
-        partialLedger[exchange.CndlAddr] = exchangeCandleAudit
-
-        return partialLedger, nil    
+    } else {
+        return nil, fmt.Errorf("symbol mismatch: tx{%s -> %s} != exchange{%s <-> %s}",
+                tx.SymbolIn, tx.SymbolOut, exchangeReserveA.Symbol, exchangeReserveB.Symbol)
     }
-    return nil, fmt.Errorf("symbol mismatch: tx{%s -> %s} != exchange{%s <-> %s}",
-        tx.SymbolIn, tx.SymbolOut, exchangeReserveA.Symbol, exchangeReserveB.Symbol)
+
+    fmt.Printf("after: exchangeReserveA %v \n", exchangeReserveA)
+    fmt.Printf("after: exchangeReserveB %v \n", exchangeReserveB)
+    fmt.Printf("after: sendReserve %v \n", sendReserve)
+    fmt.Printf("after: recvReserve %v \n", recvReserve)
+
+
+    // Finally Update the Partial Ledger & Calculate new spot price
+    partialLedger[sendReserveAddr] = *sendReserve
+    partialLedger[recvReserveAddr] = *recvReserve
+    partialLedger[exchange.TkrAddrA] = *exchangeReserveA
+    partialLedger[exchange.TkrAddrB] = *exchangeReserveB
+    
+    calculatedPrice, err = exchange.GetPriceB(partialLedger)
+    if err != nil {
+        return nil, err
+    } 
+    exchangeCandleAudit.Add(tick, calculatedPrice, tx.AmountIn)
+    fmt.Printf("new price: %v\n", calculatedPrice)
+
+    partialLedger[exchange.CndlAddr] = exchangeCandleAudit
+    return partialLedger, nil
 }

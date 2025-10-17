@@ -8,7 +8,7 @@ import (
 
 type TokenReserve struct {
 	Symbol	string
-	Amount	
+	Amount	float64
 }
 
 func InitTokenReserve(sym string, amt float64, l *ledger.Ledger) ledger.LedgerAddr {

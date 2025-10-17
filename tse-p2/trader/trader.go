@@ -104,8 +104,7 @@ func (t *Trader) CreateSwapTransaction(
     }
 
 
-    // BUG FIX: Calculate minimum output using current exchange price
-    // TODO: Implement proper slippage protection using current exchange reserves
+    // BUG we do no calculation and accept any slippage :/
     minimumOutputAmount := 0.0 // Placeholder - needs real calculation
 
     swapTx := exchange.SwapExactTokensForTokensTx{
