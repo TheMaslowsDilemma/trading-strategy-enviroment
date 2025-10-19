@@ -3,7 +3,6 @@ package candles
 import (
     "fmt"
     "crypto/sha256"
-    "tse-p2/globals"
     "tse-p2/ledger"
 )
 
@@ -30,8 +29,7 @@ func InitCandleAudit(size uint32, l *ledger.Ledger) ledger.LedgerAddr {
 func (ca *CandleAudit) Add(tick uint64, price float64, volume float64) {
     var timegroup uint64
     
-    timegroup = tick / globals.TICK_PER_SECOND
-
+    timegroup = tick
     if timegroup != ca.LastActive {
         ca.startNextCandle(price, volume, timegroup)
     } else {

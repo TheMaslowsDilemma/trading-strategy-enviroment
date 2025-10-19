@@ -17,7 +17,7 @@ import (
 
 type hub struct {
 	clients    map[*websocket.Conn]bool
-	Broadcast chan []byte
+	Broadcast  chan []byte
 	register   chan *websocket.Conn
 	unregister chan *websocket.Conn
 }
@@ -186,7 +186,7 @@ func processCommand(s string, sim *simulation.Simulation) string {
 		if err != nil {
 			return err.Error()
 		}
-		return fmt.Sprintf("swap order placed: %v %s to %s", cnfd, from, to)
+		return fmt.Sprintf("tx made: %v", s)
 	} else {
 		return fmt.Sprintf("unrecognized command \"%s\"", s)
 	}

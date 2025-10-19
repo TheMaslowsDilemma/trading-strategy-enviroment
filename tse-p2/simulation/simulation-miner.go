@@ -5,19 +5,16 @@ import (
     "tse-p2/ledger"
 )
 
-const timeBetweenMinerIterations = 500 * time.Millisecond
-const timeBetweenBlocks = 10000 * time.Millisecond
+const timeBetweenBlocks = 100 * time.Millisecond
 
 func (sim *Simulation) minerTask() {
-    var tick uint64 = 0
-
+    var start uint64 = uint64(time.Now().Unix())
     for {
     	if sim.IsCanceled {
             return
         }
-        sim.iterateMinerTask(tick)
-        tick += 1
-        time.Sleep(timeBetweenMinerIterations)
+        sim.iterateMinerTask( (uint64(time.Now().Unix()) - start) / 10)
+        time.Sleep(timeBetweenBlocks)
     }
 }
 
@@ -27,19 +24,15 @@ func (sim *Simulation) iterateMinerTask(tick uint64) {
         err     error
     )
 
-    // TODO ? add CLI interations here
-    if time.Since(sim.MainMiner.LastBlockTime) >= timeBetweenBlocks {
-        ftcount, err = sim.MainMiner.MineNextBlock(tick, &sim.MemoryPool)
-        if err != nil {
-            // TODO push err log to sim
-        }
+    ftcount, err = sim.MainMiner.MineNextBlock(tick, &sim.MemoryPool)
+    if err != nil {
+        // TODO push err log to sim
+    }
 
-        
-        ledger.Merge(&sim.Ledger, sim.MainMiner.BackLedger)
-        
-        if sim.CandleNotifier != nil && ftcount != 0 {
-            sim.CandleNotifier()
-        }
-        sim.MainMiner.LastBlockTime = time.Now()
+    
+    ledger.Merge(&sim.Ledger, sim.MainMiner.BackLedger)
+    
+    if sim.CandleNotifier != nil && ftcount != 0 {
+        sim.CandleNotifier()
     }
 }

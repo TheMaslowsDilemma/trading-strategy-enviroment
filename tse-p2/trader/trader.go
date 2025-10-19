@@ -75,6 +75,9 @@ func (t *Trader) CreateSwapTransaction(
     confidence float64, 
     ledgerState ledger.Ledger,
 ) (ledger.Tx, error) {
+    if t.HasPendingTx { 
+        return nil, fmt.Errorf("an existing tx is waiting to be processed.")
+    }
     wallet, err := wallet.WalletFromLedgerItem(ledgerState[t.WalletAddr])
     if err != nil {
         return nil, fmt.Errorf("failed to load wallet: %v", err)
@@ -114,10 +117,16 @@ func (t *Trader) CreateSwapTransaction(
         AmountMinOut: minimumOutputAmount,
         WalletAddr:   t.WalletAddr,
         ExchangeAddr: t.ExchangeAddr,
+        Callback: t.notifySwap,
     }
 
     // Set pending transaction flag
     t.HasPendingTx = true
     
     return swapTx, nil
+}
+
+
+func (t *Trader) notifySwap(_ ledger.TxResult) {
+    t.HasPendingTx = false
 }

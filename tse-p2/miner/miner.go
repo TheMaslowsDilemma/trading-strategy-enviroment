@@ -2,7 +2,6 @@ package miner
 
 import (
     "fmt"
-    "time"
     "tse-p2/ledger"
     "tse-p2/mempool"
 )
@@ -10,7 +9,6 @@ import (
 const MaxBlockSize = 7
 
 type Miner struct {
-    LastBlockTime       time.Time
     BackLedger          ledger.Ledger
     Logs                chan string
 }
@@ -26,7 +24,6 @@ func CreateMiner(logsize int, lg ledger.Ledger) Miner {
     ledger.Merge(&bckldg, lg)
     
     return Miner {
-        LastBlockTime: time.Now(),
         BackLedger: bckldg,
         Logs: logs,
     }
@@ -61,8 +58,10 @@ func (m *Miner) MineNextBlock(tick uint64, mpl *mempool.MemPool) (uint, error) {
         lgp, err = tx.Apply(tick, m.BackLedger)
         if err != nil {
             fmt.Printf("error applying tx: %v\n", err)
+            tx.Notify(ledger.TxFail)
             continue
         }
+        tx.Notify(ledger.TxPass)
         ftcount += ledger.Merge(&m.BackLedger, lgp)
     }
 

@@ -15,6 +15,7 @@ type SwapExactTokensForTokensTx struct {
     AmountMinOut        float64
     WalletAddr          ledger.LedgerAddr
     ExchangeAddr        ledger.LedgerAddr
+    Callback            func(result ledger.TxResult)
 }
 
 // Returns a Partial Ledger -- modifications only -- to be merged by the miner.
@@ -49,8 +50,6 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
         return nil, fmt.Errorf("failed to cast wallet's input token reserve: %v", err)
     }
 
-    fmt.Printf("before: sendReserve %v \n", sendReserve)
-
     recvReserveAddr, err = wlt.GetReserveAddr(tx.SymbolOut, l)
     if err != nil {
         return nil, fmt.Errorf("failed to find wallet's output token reserve: %v", err)
@@ -59,9 +58,6 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
     if err != nil {
         return nil, fmt.Errorf("failed to cast wallet's output token reserve: %v", err)
     }
-
-    fmt.Printf("before: recvReserve %v \n", recvReserve)
-
 
     exchange, err = CpeFromLedgerItem(l[tx.ExchangeAddr])
     if err != nil {
@@ -73,7 +69,6 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
     if err != nil {
         return nil, fmt.Errorf("failed to cast exchange's token reserve A: %v", err)
     }
-    fmt.Printf("before: exchangeReserveA %v \n", exchangeReserveA)
 
     //exchangeReserveA = (*exchangeReserveA).Copy()
 
@@ -82,7 +77,6 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
         return nil, fmt.Errorf("failed to cast exchange's token reserve B: %v", err)
     }
     //exchangeReserveB = (*exchangeReserveB).Copy()
-    fmt.Printf("before: exchangeReserveB %v \n", exchangeReserveB)
     
     exchangeCandleAudit, err = candles.CandleAuditFromLedgerItem(l[exchange.CndlAddr])
     if err != nil {
@@ -110,7 +104,7 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
             return nil, fmt.Errorf("swap output greater then exchange B reserve, %v > %v", amountOut, exchangeReserveB.Amount)
         }
        
-        fmt.Printf("applying swap: %v %v -> %v %v\n", tx.SymbolIn, tx.AmountIn, tx.SymbolOut, amountOut)
+        //fmt.Printf("applying swap: %v %v -> %v %v\n", tx.SymbolIn, tx.AmountIn, tx.SymbolOut, amountOut)
 
         // Transfer input tokens: wallet -> exchange
         sendReserve.Amount -= tx.AmountIn
@@ -133,7 +127,7 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
             return nil, fmt.Errorf("swap output greater then exchange A reserve, %v > %v", amountOut, exchangeReserveA.Amount)
         }
 
-        fmt.Printf("applying swap: %v %v -> %v %v\n", tx.SymbolIn, tx.AmountIn, tx.SymbolOut, amountOut)
+        //fmt.Printf("applying swap: %v %v -> %v %v\n", tx.SymbolIn, tx.AmountIn, tx.SymbolOut, amountOut)
 
         // Transfer input tokens: wallet -> exchange  
         sendReserve.Amount -= tx.AmountIn
@@ -147,12 +141,6 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
                 tx.SymbolIn, tx.SymbolOut, exchangeReserveA.Symbol, exchangeReserveB.Symbol)
     }
 
-    fmt.Printf("after: exchangeReserveA %v \n", exchangeReserveA)
-    fmt.Printf("after: exchangeReserveB %v \n", exchangeReserveB)
-    fmt.Printf("after: sendReserve %v \n", sendReserve)
-    fmt.Printf("after: recvReserve %v \n", recvReserve)
-
-
     // Finally Update the Partial Ledger & Calculate new spot price
     partialLedger[sendReserveAddr] = *sendReserve
     partialLedger[recvReserveAddr] = *recvReserve
@@ -164,8 +152,12 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
         return nil, err
     } 
     exchangeCandleAudit.Add(tick, calculatedPrice, tx.AmountIn)
-    fmt.Printf("new price: %v\n", calculatedPrice)
 
     partialLedger[exchange.CndlAddr] = exchangeCandleAudit
     return partialLedger, nil
+}
+
+
+func (tx SwapExactTokensForTokensTx) Notify(result ledger.TxResult) {
+    tx.Callback(result)
 }
