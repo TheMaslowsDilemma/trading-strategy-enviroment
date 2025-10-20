@@ -6,6 +6,8 @@ import (
     "math/rand"
 )
 
+type LedgerFetcher func(LedgerAddr) LedgerItem
+
 type LedgerAddr uint64
 
 type LedgerItem interface {

@@ -1,7 +1,6 @@
 package strategy
 
 import (
-    "tse-p2/ledger"
     "tse-p2/candles"
 )
 
@@ -14,5 +13,5 @@ const (
 
 
 type Strategy interface {
-   Decide(cs []candles.Candle, l ledger.Ledger) (Action, float64) // cs -> Action, Confidence [0,1]
+   Decide(cs []candles.Candle) (Action, float64) // cs -> Action, Confidence [0,1]
 }

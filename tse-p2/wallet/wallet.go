@@ -20,7 +20,7 @@ func InitWallet(rs []token.TokenReserve, l *ledger.Ledger) ledger.LedgerAddr {
     
     wlt = Wallet{ Reserves: make([]ledger.LedgerAddr, 0) }
     wltaddr = ledger.RandomLedgerAddr()
-    
+    fmt.Printf("wallet addr: %v\n", wltaddr)
     for _, r := range rs {
         fmt.Printf("adding %v with %v amt\n", r.Symbol, r.Amount)
         err = (&wlt).AddReserve(r.Symbol, r.Amount, l)
@@ -31,12 +31,18 @@ func InitWallet(rs []token.TokenReserve, l *ledger.Ledger) ledger.LedgerAddr {
 
     fmt.Println(wlt)
     (*l)[wltaddr] = wlt
+
     return wltaddr
 }
 
 func (w *Wallet) AddReserve(sym string, amt float64, l *ledger.Ledger) error {
     var tkaddr ledger.LedgerAddr
-    if _, err := w.GetReserveAddr(sym, *l); err == nil {
+
+    lookup := func(addr ledger.LedgerAddr) ledger.LedgerItem {
+        return (*l)[addr]
+    }
+    
+    if _, err := w.GetReserveAddr(sym, lookup); err == nil {
         return fmt.Errorf("wallet already contains reserve %v", sym)
     }
 
@@ -76,7 +82,7 @@ func (w Wallet) ContainsReserve(raddr ledger.LedgerAddr) bool {
     return false
 }
 
-func (w Wallet) GetReserveAddr(sym string, l ledger.Ledger) (ledger.LedgerAddr, error) {
+func (w Wallet) GetReserveAddr(sym string, lookup ledger.LedgerFetcher) (ledger.LedgerAddr, error) {
     var (
         i       int
         tkr     *token.TokenReserve
@@ -84,7 +90,7 @@ func (w Wallet) GetReserveAddr(sym string, l ledger.Ledger) (ledger.LedgerAddr, 
     )
 
     for i = 0; i < len(w.Reserves); i++ {
-        tkr, err = token.TkrFromLedgerItem(l[w.Reserves[i]])
+        tkr, err = token.TkrFromLedgerItem(lookup(w.Reserves[i]))
         if err != nil {
             continue; // we can ignore these errors
         }

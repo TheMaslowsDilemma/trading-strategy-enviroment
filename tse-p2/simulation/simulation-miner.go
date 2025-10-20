@@ -13,7 +13,7 @@ func (sim *Simulation) minerTask() {
     	if sim.IsCanceled {
             return
         }
-        sim.iterateMinerTask( (uint64(time.Now().Unix()) - start) / 10)
+        sim.iterateMinerTask( (uint64(time.Now().Unix()) - start))
         time.Sleep(timeBetweenBlocks)
     }
 }
@@ -24,6 +24,7 @@ func (sim *Simulation) iterateMinerTask(tick uint64) {
         err     error
     )
 
+    
     ftcount, err = sim.MainMiner.MineNextBlock(tick, &sim.MemoryPool)
     if err != nil {
         // TODO push err log to sim

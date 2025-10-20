@@ -9,10 +9,8 @@ import (
 	"strings"
 
 	"github.com/gorilla/websocket"
-	"tse-p2/candles"
 	"tse-p2/simulation"
 	"tse-p2/ledger"
-	"tse-p2/exchange"
 )
 
 type hub struct {
@@ -74,7 +72,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request, sim *simulation.Si
 	}()
 
 	// Send initial candles on connection
-	initialCandles, err := GetCandles(sim)
+	initialCandles, err := sim.GetCandles()
 	if err == nil {
 		data, _ := json.Marshal(map[string]interface{}{
 			"type": "candles",
@@ -110,45 +108,17 @@ func websocketHandler(w http.ResponseWriter, r *http.Request, sim *simulation.Si
 
 		} else if msg.Type == "init" {
 
-			candles, err := GetCandles(sim)
+			cs, err := sim.GetCandles()
 
 			if err == nil {
 				data, _ := json.Marshal(map[string]interface{}{
 					"type": "candles",
-					"data": candles,
+					"data": cs,
 				})
 				conn.WriteMessage(websocket.TextMessage, data)
 			}
 		}
 	}
-}
-
-func GetCandles(sim *simulation.Simulation) ([]candles.Candle, error) {
-	sim.LedgerLock.Lock()
-	defer sim.LedgerLock.Unlock()
-
-	exItem, ok := sim.Ledger[sim.ExAddr]
-	if !ok {
-		return nil, fmt.Errorf("exchange not found on ledger")
-	}
-	ex, ok := exItem.(exchange.ConstantProductExchange)
-	if !ok {
-		return nil, fmt.Errorf("invalid exchange type")
-	}
-
-	auditItem, ok := sim.Ledger[ex.CndlAddr]
-	if !ok {
-		return nil, fmt.Errorf("candle audit not found on ledger")
-	}
-	audit, ok := auditItem.(candles.CandleAudit)
-	if !ok {
-		return nil, fmt.Errorf("invalid candle audit type")
-	}
-
-	candles := audit.CandleHistory.CandlesInOrder()
-	candles = append(candles, audit.CurrentCandle)
-
-	return candles, nil
 }
 
 func processCommand(s string, sim *simulation.Simulation) string {

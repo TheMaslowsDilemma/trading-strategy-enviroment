@@ -25,7 +25,7 @@ func InitConstantProductExchange(symbA, symbB string, cntA, cntB float64, l *led
     ex = ConstantProductExchange {
         TkrAddrA: token.InitTokenReserve(symbA, cntA, l),
         TkrAddrB: token.InitTokenReserve(symbB, cntB, l),
-        CndlAddr: candles.InitCandleAudit(10, l), // NOTE hard coded
+        CndlAddr: candles.InitCandleAudit(1000, l), // NOTE hard coded // 1000 data points
     }
 
     (*l)[exaddr] = ex

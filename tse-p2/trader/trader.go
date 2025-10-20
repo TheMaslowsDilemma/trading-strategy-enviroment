@@ -4,11 +4,14 @@ import (
     "fmt"
     "tse-p2/token"
     "tse-p2/ledger"
-    "tse-p2/candles"
     "tse-p2/strategy"
     "tse-p2/wallet"
     "tse-p2/exchange"
+    "tse-p2/candles"
 )
+
+type candleFetchFunc func() ([]candles.Candle, error)
+type txPlacerFunc    func(ledger.Tx)
 
 type Trader struct {
     ExchangeAddr    ledger.LedgerAddr
@@ -18,6 +21,9 @@ type Trader struct {
     DecisionStrategy strategy.Strategy
     HasPendingTx    bool
     LogChannel      chan string
+    candleFetcher   candleFetchFunc
+    ledgerLookup    ledger.LedgerFetcher
+    txPlacer        txPlacerFunc
 }
 
 /** NOTE: Traders are associated with a specific exchange **/
@@ -27,7 +33,9 @@ func CreateTrader(
     walletAddr ledger.LedgerAddr, 
     exchangeAddr ledger.LedgerAddr, 
     symbolA, symbolB string, 
-    ledgerState ledger.Ledger,
+    cndlfetch candleFetchFunc,
+    ldgrfetch ledger.LedgerFetcher,
+    trxplacer txPlacerFunc,
 ) Trader {
     return Trader {
         ExchangeAddr:    exchangeAddr,
@@ -37,16 +45,19 @@ func CreateTrader(
         DecisionStrategy: decisionStrategy,
         HasPendingTx:    false,
         LogChannel:      make(chan string, logChannelSize),
+        candleFetcher:   cndlfetch,
+        ledgerLookup:   ldgrfetch,
+        txPlacer:        trxplacer,
     }
 }
 
-func (t *Trader) MakeDecision(candles []candles.Candle, ledgerState ledger.Ledger) ledger.Tx {
+func (t *Trader) MakeDecision(cs []candles.Candle) ledger.Tx {
     if t.HasPendingTx {
         // TODO: Log "Cannot make decision - pending transaction exists"
         return nil
     }
 
-    transaction, err := t.createTransaction(candles, ledgerState)
+    transaction, err := t.createTransaction(cs)
     if err != nil {
         // TODO: Log error "Failed to create transaction: %v", err
         return nil
@@ -55,16 +66,16 @@ func (t *Trader) MakeDecision(candles []candles.Candle, ledgerState ledger.Ledge
     return transaction
 }
 
-func (t *Trader) createTransaction(candles []candles.Candle, ledgerState ledger.Ledger) (ledger.Tx, error) {
-    tradingAction, confidence := t.DecisionStrategy.Decide(candles, ledgerState)
+func (t *Trader) createTransaction(cs []candles.Candle) (ledger.Tx, error) {
+    tradingAction, confidence := t.DecisionStrategy.Decide(cs)
  
     switch tradingAction {
     case strategy.Hold:
         return nil, nil
     case strategy.Buy:
-        return t.CreateSwapTransaction(t.ExchangeSymA, t.ExchangeSymB, confidence, ledgerState)
+        return t.CreateSwapTransaction(t.ExchangeSymA, t.ExchangeSymB, confidence)
     case strategy.Sell:
-        return t.CreateSwapTransaction(t.ExchangeSymB, t.ExchangeSymA, confidence, ledgerState)
+        return t.CreateSwapTransaction(t.ExchangeSymB, t.ExchangeSymA, confidence)
     default:
         return nil, fmt.Errorf("unknown trading action: %v", tradingAction)
     }
@@ -73,22 +84,31 @@ func (t *Trader) createTransaction(candles []candles.Candle, ledgerState ledger.
 func (t *Trader) CreateSwapTransaction(
     inputSymbol, outputSymbol string, 
     confidence float64, 
-    ledgerState ledger.Ledger,
 ) (ledger.Tx, error) {
+    var (
+        wlt                 *wallet.Wallet
+        inputTokenReserve   *token.TokenReserve
+        inputTokenReserveAddr ledger.LedgerAddr
+        minimumOutputAmount float64
+        swapTx              ledger.Tx
+        err                 error
+    )
+
     if t.HasPendingTx { 
         return nil, fmt.Errorf("an existing tx is waiting to be processed.")
     }
-    wallet, err := wallet.WalletFromLedgerItem(ledgerState[t.WalletAddr])
+
+    wlt, err = wallet.WalletFromLedgerItem(t.ledgerLookup(t.WalletAddr))
     if err != nil {
         return nil, fmt.Errorf("failed to load wallet: %v", err)
     }
 
-    inputTokenReserveAddr, err := wallet.GetReserveAddr(inputSymbol, ledgerState)
+    inputTokenReserveAddr, err = wlt.GetReserveAddr(inputSymbol, t.ledgerLookup)
     if err != nil {
         return nil, fmt.Errorf("failed to get reserve address for symbol %s: %v", inputSymbol, err)
     }
     
-    inputTokenReserve, err := token.TkrFromLedgerItem(ledgerState[inputTokenReserveAddr])
+    inputTokenReserve, err = token.TkrFromLedgerItem(t.ledgerLookup(inputTokenReserveAddr))
     if err != nil {
         return nil, fmt.Errorf("failed to load input token reserve for %s: %v", inputSymbol, err)
     }
@@ -107,10 +127,10 @@ func (t *Trader) CreateSwapTransaction(
     }
 
 
-    // BUG we do no calculation and accept any slippage :/
-    minimumOutputAmount := 0.0 // Placeholder - needs real calculation
+    // TODO use 95% spot-price * inputAmount = minimumOutput -- 5% slippage? //
+    minimumOutputAmount = 0.0
 
-    swapTx := exchange.SwapExactTokensForTokensTx{
+    swapTx = exchange.SwapExactTokensForTokensTx{
         SymbolIn:     inputSymbol,
         SymbolOut:    outputSymbol,
         AmountIn:     inputAmount,
@@ -120,7 +140,6 @@ func (t *Trader) CreateSwapTransaction(
         Callback: t.notifySwap,
     }
 
-    // Set pending transaction flag
     t.HasPendingTx = true
     
     return swapTx, nil

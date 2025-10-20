@@ -9,7 +9,6 @@ import (
     "tse-p2/exchange"
     "tse-p2/trader"
     "tse-p2/wallet"
-    "tse-p2/token"
 )
 
 const simulationMemoryPoolSize = 512
@@ -44,21 +43,15 @@ func CreateSimulation() (*Simulation, error) {
     mp = mempool.CreateMempool(simulationMemoryPoolSize)
     eaddr = exchange.InitConstantProductExchange("usd", "eth", 10000, 500000, &lg)
 
-    // Initialize CLI User Wallet and Trader //
-    rs := []token.TokenReserve {
-        token.TokenReserve {
-            Symbol: "usd",
-            Amount: 10000.0,
-        },
-        token.TokenReserve {
-            Symbol: "eth",
-            Amount: 0.0,
-        },
-    }
-
-    waddr = wallet.InitWallet(rs, &lg)
+    waddr = wallet.InitDefaultWallet(&lg)
     mm = miner.CreateMiner(simulationEntityLogBufferSize, lg)
 
+    traderPlaceTx := func (tx ledger.Tx) {
+        (&mp).PushTx(tx)
+    }
+    traderLedgerLookup := func (addr ledger.LedgerAddr) ledger.LedgerItem {
+        return lg[addr]
+    }
     trdr = trader.CreateTrader(
         nil, // no strategy for user trader
         10,
@@ -66,10 +59,12 @@ func CreateSimulation() (*Simulation, error) {
         eaddr,
         "usd",
         "eth",
-        lg,
+        nil,
+        traderLedgerLookup,
+        traderPlaceTx,
     )
 
-    return &Simulation {
+    sim := Simulation {
         RunningDur: 0,
         IsCanceled: false,
         Ledger: lg,
@@ -78,13 +73,17 @@ func CreateSimulation() (*Simulation, error) {
         ExAddr: eaddr,
         CliTrader: trdr,
         CliWallet: waddr,
-    }, nil
+    }
+
+    return &sim, nil
 }
 
 func (s *Simulation) Run() {
     s.start = time.Now()
 
     // Start Entity Routines
+    s.initializeTraders()
+    ledger.Merge(&s.MainMiner.BackLedger, s.Ledger)
     go s.minerTask()
 
     // Simulation Control Loop

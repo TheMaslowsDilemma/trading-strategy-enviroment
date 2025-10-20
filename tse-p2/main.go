@@ -46,13 +46,13 @@ func main() {
     website.Initialize(addr, sim)
 
     sim.CandleNotifier = func() {
-        candles, err := website.GetCandles(sim)
+        cs, err := sim.GetCandles()
         if err != nil {
             return
         }
         data, err := json.Marshal(map[string]interface{}{
             "type": "candles",
-            "data": candles,
+            "data": cs,
         })
         if err != nil {
             return

@@ -36,12 +36,16 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
         err                       error
     )
 
+    lookup := func(addr ledger.LedgerAddr) ledger.LedgerItem {
+        return l[addr]
+    }
+
     wlt, err = wallet.WalletFromLedgerItem(l[tx.WalletAddr])
     if err != nil {
         return nil, fmt.Errorf("failed to cast wallet: %v", err)
     }
     
-    sendReserveAddr, err = wlt.GetReserveAddr(tx.SymbolIn, l)
+    sendReserveAddr, err = wlt.GetReserveAddr(tx.SymbolIn, lookup)
     if err != nil {
         return nil, fmt.Errorf("failed to find wallet's input token reserve: %v", err)
     }
@@ -50,7 +54,7 @@ func (tx SwapExactTokensForTokensTx) Apply(tick uint64, l ledger.Ledger) (ledger
         return nil, fmt.Errorf("failed to cast wallet's input token reserve: %v", err)
     }
 
-    recvReserveAddr, err = wlt.GetReserveAddr(tx.SymbolOut, l)
+    recvReserveAddr, err = wlt.GetReserveAddr(tx.SymbolOut, lookup)
     if err != nil {
         return nil, fmt.Errorf("failed to find wallet's output token reserve: %v", err)
     }
