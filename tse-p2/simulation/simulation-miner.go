@@ -30,8 +30,9 @@ func (sim *Simulation) iterateMinerTask(tick uint64) {
         // TODO push err log to sim
     }
 
-    
+    sim.LedgerLock.Lock()
     ledger.Merge(&sim.Ledger, sim.MainMiner.BackLedger)
+    sim.LedgerLock.Unlock()
     
     if sim.CandleNotifier != nil && ftcount != 0 {
         sim.CandleNotifier()

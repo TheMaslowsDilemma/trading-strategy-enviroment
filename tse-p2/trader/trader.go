@@ -117,7 +117,7 @@ func (t *Trader) CreateSwapTransaction(
         return nil, fmt.Errorf("no balance available for %s", inputSymbol)
     }
 
-    inputAmount := inputTokenReserve.Amount * confidence
+    inputAmount := inputTokenReserve.Amount * 0.07 * confidence
     if inputAmount <= 0 {
         return nil, fmt.Errorf("calculated input amount is zero or negative")
     }

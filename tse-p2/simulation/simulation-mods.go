@@ -59,5 +59,12 @@ func (s *Simulation) placeTx(tx ledger.Tx) {
 }
 
 func (s *Simulation) ledgerLookup(addr ledger.LedgerAddr) ledger.LedgerItem {
-    return (*s).Ledger[addr]
+    var li ledger.LedgerItem
+
+    s.LedgerLock.Lock()
+    li = (*s).Ledger[addr]
+    s.LedgerLock.Unlock()
+
+    return li
+
 }

@@ -47,6 +47,10 @@ func main() {
 
     sim.CandleNotifier = func() {
         cs, err := sim.GetCandles()
+        lencs := len(cs)
+        if lencs > 20 {
+            cs = cs[lencs-20:]
+        }
         if err != nil {
             return
         }

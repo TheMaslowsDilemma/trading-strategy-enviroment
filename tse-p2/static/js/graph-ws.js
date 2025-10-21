@@ -84,7 +84,13 @@ document.addEventListener('DOMContentLoaded', function() {
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
-        const xDomain = [d3.min(data, d => d.ts), d3.max(data, d => d.ts)];
+        const minTs = d3.min(data, d => d.ts);
+        const normalizedData = data.map(d => ({
+            ...d,
+            normalizedTs: d.ts - minTs
+        }));
+
+        const xDomain = [0, d3.max(normalizedData, d => d.normalizedTs)];
         const x = d3.scaleLinear()
             .domain(xDomain)
             .range([0, width]);
@@ -97,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const xAxis = svg.append("g")
             .attr("class", "x-axis")
             .attr("transform", `translate(0,${height})`)
-            .call(d3.axisBottom(x));
+            .call(d3.axisBottom(x).tickFormat(d => `${d}s`));
 
         svg.append("g")
             .attr("class", "y-axis")
@@ -123,9 +129,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const g = svg.append("g")
             .selectAll("g")
-            .data(data)
+            .data(normalizedData)
             .join("g")
-            .attr("transform", d => `translate(${x(d.ts)},0)`);
+            .attr("transform", d => `translate(${x(d.normalizedTs)},0)`);
 
         // Wicks
         g.append("line")

@@ -23,34 +23,55 @@ func (sim *Simulation) createTrader(s strategy.Strategy) trader.Trader {
 }
 
 func (sim *Simulation) initializeTraders() {
-	var (
-		t1  trader.Trader
-		t2  trader.Trader
-		t3  trader.Trader
-	)
-
-	s1 := strategy.SimpleStrategy {
-		ShortInterval: 2,
-		LongInterval: 6,
+	var InterestingStrategies = []struct {
+	    Strat strategy.Strategy
+	    Name  string
+	}{
+	    {
+	        Strat: strategy.SimpleStrategy{ShortInterval: 5, LongInterval: 20},
+	        Name:  "SimpleStrategy-AggressiveShort",
+	    },
+	    {
+	        Strat: strategy.MomentumStrategy{Lookback: 14, Threshold: 0.005},
+	        Name:  "MomentumStrategy-Sensitive",
+	    },
+	    {
+	        Strat: strategy.VolatilityBreakoutStrategy{ATRPeriod: 10, Multiplier: 2.0},
+	        Name:  "VolatilityBreakoutStrategy-Frequent",
+	    },
+	    {
+	        Strat: strategy.MeanReversionStrategy{SMAPeriod: 50, Deviation: 0.02},
+	        Name:  "MeanReversionStrategy-Stable",
+	    },
+	    {
+	        Strat: strategy.RandomWalkStrategy{BuyProb: 0.4, SellProb: 0.2},
+	        Name:  "RandomWalkStrategy-BullBiased",
+	    },
+	    // Iter 2
+		{
+	        Strat: strategy.SimpleStrategy{ShortInterval: 25, LongInterval: 60},
+	        Name:  "SimpleStrategy-AggressiveShort",
+	    },
+	    {
+	        Strat: strategy.MomentumStrategy{Lookback: 50, Threshold: 0.009},
+	        Name:  "MomentumStrategy-Sensitive",
+	    },
+	    {
+	        Strat: strategy.VolatilityBreakoutStrategy{ATRPeriod: 30, Multiplier: 0.4},
+	        Name:  "VolatilityBreakoutStrategy-Frequent",
+	    },
+	    {
+	        Strat: strategy.MeanReversionStrategy{SMAPeriod: 100, Deviation: 0.01},
+	        Name:  "MeanReversionStrategy-Stable",
+	    },
+	    {
+	        Strat: strategy.RandomWalkStrategy{BuyProb: 0.4, SellProb: 0.2},
+	        Name:  "RandomWalkStrategy-BullBiased",
+	    },
 	}
 
-	s2 := strategy.SimpleStrategy {
-		ShortInterval: 7,
-		LongInterval: 18,
+	for _, is := range InterestingStrategies {
+		t := sim.createTrader(is.Strat)
+		go t.Run(&sim.IsCanceled)
 	}
-
-	s3 := strategy.SimpleStrategy {
-		ShortInterval: 16,
-		LongInterval: 42,
-	}
-
-	t1 = sim.createTrader(s1)
-	t2 = sim.createTrader(s2)
-	t3 = sim.createTrader(s3)
-
-	go t1.Run(&sim.IsCanceled)
-	go t2.Run(&sim.IsCanceled)
-	go t3.Run(&sim.IsCanceled)
 }
-
-
