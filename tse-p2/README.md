@@ -1,20 +1,28 @@
-### Part Two: A Simulated Marketplace
 
-#### Background
-I want an environment for strategies to directly compete with each other. This can be done by simulating a market place for strategies to buy or sell assets, where their decisions also affect the market. For this part we will temporarily move away from using historical data.
+## Trading Strategy Environment Part Two
+This repository contains a Golang-based trading strategy simulation that allows users to test and develop trading strategies in a dynamic, risk-free environment. Powered by an automated market maker inspired by Uniswap, the simulation enables competing strategies to generate synthetic candlestick data through trades.
 
-#### System Overview
+#### Run the Simulation:
 
-- **Simulation:** defines start logic, result output, and cleanup logic. basically manages lifecyle.
+```
+cd trading-strategy-simulation/tse-p2
+go mod tidy
+go run main.go
+```
 
-- **Ledger:** holds state information for the simulation - currently just Traders, Mempool, and Exchanges
+Configure simulation parameters (e.g., number of traders, initial reserves) in config.go.
+Add custom strategies by implementing the Strategy interface.
+Monitor synthetic candlestick data and trader performance via console output.
 
-- **Miner:** is responsible for updating the ledger through the creation and application of Transaction Blocks
+#### Contributing
+Contributions are welcome! Feel free to submit pull requests or open issues for new features, bug fixes, or improvements.
 
-- **Exchange:** currently only *ConstantProductExchange* which is state information on the liquidity pools.
-    - defines the *Swap* transaction, currently only `SwapExact_For_` could be updated to include `Swap_ForExact_`
+##### Written with Grok
+used it for these parts, but this was primarily a learning project so kept away from it for the vast majority.
+- this README
+- the `static/js/graph-ws.js` file for graphing candles
+- the random strategies under `momentum.go`
 
 
-- **Trader:** makes decisions (transactions) based on wallet state, candle history, and strategy.
-
-- **Mempool:** holds pending transactions, and is used by the *Miner* to fill transaction blocks
+##### License
+This project is licensed under the MIT License. See the LICENSE file for details.
