@@ -1,20 +1,20 @@
-### Part Two: A Simulated Marketplace
+## Trading Strategy Environment Part Two
+This repository contains a Golang-based trading strategy simulation that allows users to test and develop trading strategies in a dynamic, risk-free environment. Powered by an automated market maker inspired by Uniswap, the simulation enables competing strategies to generate synthetic candlestick data through trades.
 
-#### Background
-I want an environment for strategies to directly compete with each other. This can be done by simulating a market place for strategies to buy or sell assets, where their decisions also affect the market. For this part we will temporarily move away from using historical data.
+#### Run the Simulation:
 
-#### System Overview
-
-- **Simulation:** defines start logic, result output, and cleanup logic. basically manages lifecyle.
-
-- **Ledger:** holds state information for the simulation - currently just Traders, Mempool, and Exchanges
-
-- **Miner:** is responsible for updating the ledger through the creation and application of Transaction Blocks
-
-- **Exchange:** currently only *ConstantProductExchange* which is state information on the liquidity pools.
-    - defines the *Swap* transaction, currently only `SwapExact_For_` could be updated to include `Swap_ForExact_`
+```
+cd trading-strategy-simulation/tse-p2
+go mod tidy
+go run main.go
+```
 
 
-- **Trader:** makes decisions (transactions) based on wallet state, candle history, and strategy.
+Configure simulation parameters (e.g., number of traders, initial reserves) in config.go.
+Add custom strategies by implementing the Strategy interface.
+Monitor synthetic candlestick data and trader performance via console output.
 
-- **Mempool:** holds pending transactions, and is used by the *Miner* to fill transaction blocks
+#### Contributing
+Contributions are welcome! Feel free to submit pull requests or open issues for new features, bug fixes, or improvements.
+##### License
+This project is licensed under the MIT License. See the LICENSE file for details.
