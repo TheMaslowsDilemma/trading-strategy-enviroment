@@ -21,11 +21,13 @@ func main() {
 	big1  = uint256.NewInt(123456)
 	big2  = uint256.NewInt(987654)
 	bigres = uint256.NewInt(0)
+
 	for i := 0; i < 40; i++ {
 		bigres.Add(big1, big2)
 		fmt.Printf("%02d: %v + %v = %v\n", i, big1, big2, bigres)
 		big1.Add(big1, c1)
 		big2.Or(big2.Add(big2, c2), bigres)
 	}
+
 
 }
