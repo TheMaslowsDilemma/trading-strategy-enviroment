@@ -14,7 +14,7 @@ func main() {
 	)
 
 	PrimarySymbol = "usd"
-	tkr = tokens.CreateTokenReserve(PrimarySymbol, 10146)
+	tkr = tokens.CreateTokenReserve(101245, PrimarySymbol)
 
 	fmt.Println(tkr)
 }
