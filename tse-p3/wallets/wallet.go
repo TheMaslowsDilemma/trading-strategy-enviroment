@@ -10,22 +10,27 @@ type Wallet struct {
 	Reserve	tokens.TokenReserve
 }
 
-func CreateWallet(amt uint64, symb string) Wallet {
+type WalletDescriptor struct {
+	Amount uint64
+	Symbol string
+}
+
+func CreateWallet(wd WalletDescriptor) Wallet {
 	return Wallet {
-		Reserve: tokens.CreateTokenReserve(amt, symb),
+		Reserve: tokens.CreateTokenReserve(wd.Amount, wd.Symbol),
 	}
 }
 
 // Ledger Item Implementation //
 // TODO Merge() operation
 
-func (wlt Wallet) Clone() {
+func (wlt Wallet) Clone() Wallet  {
 	return Wallet {
 		Reserve: wlt.Reserve.Clone(),
 	}
 }
 
-func (wlt Wallet) String() {
+func (wlt Wallet) String() string {
 	return fmt.Sprintf("{ reserve: %v }", wlt.Reserve)
 }
 

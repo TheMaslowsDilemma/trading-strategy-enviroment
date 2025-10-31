@@ -1,25 +1,25 @@
 package ledger
 
 import (
-	"fmt"
-	"tse-p3/exchange"
-	"tse-p3/wallet"
+	"math/rand"
+	"tse-p3/exchanges"
+	"tse-p3/wallets"
 )
 
 type Ledger struct {
-	Wallets		[Addr]wallets.Wallet
-	Exchanges	[Addr]exchanges.Exchange
+	Wallets		map[Addr]wallets.Wallet
+	Exchanges	map[Addr]exchanges.ConstantProductExchange
 }
 
 
 func CreateLedger() Ledger {
 	var (
-		ws [Addr]wallets.Wallet
-		es [Addr]exchanges.Exchange
+		ws map[Addr]wallets.Wallet
+		es map[Addr]exchanges.ConstantProductExchange
 	)
 
-	ws = make([Addr]wallets.Wallet)
-	es = make([Addr]exchanges.Exchange)
+	ws = make(map[Addr]wallets.Wallet)
+	es = make(map[Addr]exchanges.ConstantProductExchange)
 
 	return Ledger {
 		Wallets: ws,
@@ -27,5 +27,40 @@ func CreateLedger() Ledger {
 	}
 }
 
+func RandomAddr() Addr {
+	return Addr(uint64(rand.Uint32()) << 32 | uint64(rand.Uint32()))
+}
 
+func (l Ledger) AddConstantProductExchange(cd exchanges.CpeDescriptor) Addr {
+	var (
+		addr	Addr
+		cpe	exchanges.ConstantProductExchange
+	)
+
+	addr = RandomAddr()
+	cpe = exchanges.CreateConstantProductExchange(cd)
+	l.Exchanges[addr] = cpe
+	return addr
+}
+
+func (l Ledger) AddWallet(wd wallets.WalletDescriptor) Addr {
+	var (
+		addr Addr
+		wlt  wallets.Wallet
+	)
+	
+	addr = RandomAddr()
+	wlt  = wallets.CreateWallet(wd)
+	l.Wallets[addr] = wlt
+	
+	return addr
+}
+
+func (l Ledger) GetWallet(addr Addr) wallets.Wallet {
+	return l.Wallets[addr]
+}
+
+func (l Ledger) GetExchange(addr Addr) exchanges.ConstantProductExchange {
+	return l.Exchanges[addr]
+}
 
