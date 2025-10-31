@@ -25,6 +25,11 @@ func CreateConstantProductExchange(cped CpeDescriptor) ConstantProductExchange {
 	}
 }
 
+func (cpe ConstantProductExchange) Merge(feat ConstantProductExchange) {
+	(&cpe.ReserveA).Merge(feat.ReserveA)
+	(&cpe.ReserveB).Merge(feat.ReserveB)
+	
+}
 
 func (cpe ConstantProductExchange) String() string {
 	return fmt.Sprintf("{ reserveA: %v; reserveB: %v }", cpe.ReserveA, cpe.ReserveB)

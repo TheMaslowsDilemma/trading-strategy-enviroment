@@ -64,3 +64,21 @@ func (l Ledger) GetExchange(addr Addr) exchanges.ConstantProductExchange {
 	return l.Exchanges[addr]
 }
 
+// NOTE this is really pseudo merge, it should eventually support deletes
+func (l Ledger) Merge(feat Ledger) {
+	var (
+		featwlt wallets.Wallet
+		featexg exchanges.ConstantProductExchange
+		addr	Addr
+	)
+
+	// merge wallet subledger - NOTE we do not do any deletes
+	for addr, featwlt = range feat.Wallets {
+		l.Wallets[addr] = featwlt
+	}
+
+	// merge exchange subledger
+	for addr, featexg = range feat.Exchanges {
+		l.Exchanges[addr] = featexg
+	}
+}

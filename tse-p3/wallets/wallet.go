@@ -21,8 +21,9 @@ func CreateWallet(wd WalletDescriptor) Wallet {
 	}
 }
 
-// Ledger Item Implementation //
-// TODO Merge() operation
+func (wlt Wallet) Merge(feat Wallet) {
+	(&wlt.Reserve).Merge(wlt.Reserve)
+}
 
 func (wlt Wallet) Clone() Wallet  {
 	return Wallet {

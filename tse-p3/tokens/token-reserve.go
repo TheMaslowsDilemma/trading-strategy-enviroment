@@ -18,7 +18,11 @@ func CreateTokenReserve(amt uint64, symb string) TokenReserve {
 	}
 }
 
-// --- Ledger Item Implementation --- //
+func (tkr *TokenReserve) Merge(feat TokenReserve) {
+	tkr.Amount = feat.Amount
+	tkr.Symbol = feat.Symbol
+}
+
 func (tkr TokenReserve) Clone() TokenReserve {
 	return TokenReserve {
 		Amount: tkr.Amount.Clone(),
