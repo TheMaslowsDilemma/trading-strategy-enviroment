@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"tse-p3/simulation"
 	"tse-p3/wallets"
 	"tse-p3/exchanges"
 	"tse-p3/ledger"
@@ -17,7 +18,8 @@ func main() {
 		SecondaryAmount uint64
 		MainLedger	ledger.Ledger
 	)
-
+	s := simulation.NewSimulation()
+	fmt.Println(s.String())
 	PrimarySymbol = "usd"
 	PrimaryAmount = 10240835
 	

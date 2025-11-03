@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"fmt"
 	"math/rand"
 	"tse-p3/exchanges"
 	"tse-p3/wallets"
@@ -11,19 +12,27 @@ type Ledger struct {
 	Exchanges	map[Addr]exchanges.ConstantProductExchange
 }
 
-
-func CreateLedger() Ledger {
+func (l Ledger) String() string {
 	var (
-		ws map[Addr]wallets.Wallet
-		es map[Addr]exchanges.ConstantProductExchange
+		wc	uint
+		ec	uint
 	)
 
-	ws = make(map[Addr]wallets.Wallet)
-	es = make(map[Addr]exchanges.ConstantProductExchange)
+	wc = 0
+	ec = 0
+	for _, _ = range l.Wallets {
+		wc += 1
+	}
+	for _, _ = range l.Exchanges {
+		ec += 1
+	}
+	return fmt.Sprintf("{ wallet-count: %v, exchange-count: %v }", wc, ec)
+}
 
+func CreateLedger() Ledger {
 	return Ledger {
-		Wallets: ws,
-		Exchanges: es,
+		Wallets: make(map[Addr]wallets.Wallet),
+		Exchanges: make(map[Addr]exchanges.ConstantProductExchange),
 	}
 }
 
