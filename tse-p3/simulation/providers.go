@@ -6,13 +6,8 @@ import (
 	"tse-p3/exchanges"
 	"tse-p3/ledger"
 	"tse-p3/traders"
-	"github.com/cespare/xxhash"
 	"github.com/holiman/uint256"
 )
-
-func exchangeKey(s1, s2 string) uint64 {
-	return xxhash.Sum64([]byte(fmt.Sprintf("%v:%v", s1, s2)))
-}
 
 func (s Simulation) walletProvider(waddr ledger.Addr) (wallets.Wallet, error) {
 	var (
