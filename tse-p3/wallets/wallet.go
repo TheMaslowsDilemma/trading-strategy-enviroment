@@ -17,7 +17,10 @@ type WalletDescriptor struct {
 
 func CreateWallet(wd WalletDescriptor) Wallet {
 	return Wallet {
-		Reserve: tokens.CreateTokenReserve(wd.Amount, wd.Symbol),
+		Reserve: tokens.CreateTokenReserve(tokens.Descriptor {
+			Amount: wd.Amount,
+			Symbol: wd.Symbol,
+		}),
 	}
 }
 

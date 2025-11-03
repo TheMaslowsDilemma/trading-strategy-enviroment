@@ -4,35 +4,35 @@ import (
 	"fmt"
 	"tse-p3/wallets"
 	"tse-p3/exchanges"
+	"tse-p3/ledger"
+	"tse-p3/traders"
 	"github.com/cespare/xxhash"
 	"github.com/holiman/uint256"
 )
 
-func exchangeKey(s1, s2 string) string {
+func exchangeKey(s1, s2 string) uint64 {
 	return xxhash.Sum64([]byte(fmt.Sprintf("%v:%v", s1, s2)))
 }
 
-func (s Simulation) walletProvider(waddr ledger.Addr) (wallet.Wallet, error) {
+func (s Simulation) walletProvider(waddr ledger.Addr) (wallets.Wallet, error) {
 	var (
-		wlt	wallet.Wallet
+		wlt	wallets.Wallet
 	)
 
 	wlt = s.MainLedger.GetWallet(waddr)
 	// NOTE this seems like less than ideal way to check if the wallet exists
 	if wlt.Reserve.Amount == nil {
-		return Wallet{}, fmt.Errorf("no wallet exists for addr: %v", waddr)
+		return wallets.Wallet{}, fmt.Errorf("no wallet exists for addr: %v", waddr)
 	}
 
 	return wlt, nil
 }
 
 func (s Simulation) rateProvider(symbol, inTermsOf string) (*uint256.Int, error) {
-	// step one
-	// get the exchange key
 	var (
 		exkey	uint64
 		exaddr	ledger.Addr
-		exg	exchanges.ConstantProductExchange
+		exg		exchanges.ConstantProductExchange
 	)
 	exkey = exchangeKey(symbol, inTermsOf)
 	exaddr = s.ExchangeDirectory[exkey]
@@ -40,13 +40,25 @@ func (s Simulation) rateProvider(symbol, inTermsOf string) (*uint256.Int, error)
 		return nil, fmt.Errorf("no direct exchange exists for %v <-> %v", symbol, inTermsOf)
 	}
 	
-	exg = s.Ledger.GetExchange(exaddr)
-	if exg.Auditer == nil {
-		return nil, fmt.Errorf("exchange is malformed or DNE: %v", exgaddr)
+	exg = s.MainLedger.GetExchange(exaddr)
+	if exg.Auditer == nil { // NOTE another less than ideal existacnce check
+		return nil, fmt.Errorf("exchange is malformed or DNE: %v", exaddr)
 	}
 
 	if symbol == exg.ReserveA.Symbol {
-		return exg.SpotPriceA()
+		return exg.SpotPriceA(), nil
 	}
-	return exg.SpotPriceB()
+	return exg.SpotPriceB(), nil
+}
+
+func (s Simulation) NetworthProvider(traderKey uint64) (*uint256.Int, error) {
+	var (
+		tr	traders.Trader
+	)
+
+	tr = s.Traders[traderKey]
+	if tr.Id == 0 { 
+		return nil, fmt.Errorf("no trader exists for key: %v", traderKey)
+	}
+	return tr.GetNetworth(s.rateProvider, s.walletProvider), nil
 }

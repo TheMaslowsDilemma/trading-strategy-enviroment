@@ -40,14 +40,14 @@ func RandomAddr() Addr {
 	return Addr(uint64(rand.Uint32()) << 32 | uint64(rand.Uint32()))
 }
 
-func (l Ledger) AddConstantProductExchange(cd exchanges.CpeDescriptor) Addr {
+func (l Ledger) AddConstantProductExchange(cd exchanges.CpeDescriptor, tick uint64) Addr {
 	var (
 		addr	Addr
-		cpe	exchanges.ConstantProductExchange
+		cpe		exchanges.ConstantProductExchange
 	)
 
 	addr = RandomAddr()
-	cpe = exchanges.CreateConstantProductExchange(cd)
+	cpe = exchanges.CreateConstantProductExchange(cd, tick)
 	l.Exchanges[addr] = cpe
 	return addr
 }

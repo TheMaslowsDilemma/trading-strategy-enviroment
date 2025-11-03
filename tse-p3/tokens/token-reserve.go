@@ -11,10 +11,15 @@ type TokenReserve struct {
 	Symbol	string
 }
 
-func CreateTokenReserve(amt uint64, symb string) TokenReserve {
+type Descriptor struct {
+	Amount	uint64
+	Symbol	string
+}
+
+func CreateTokenReserve(td Descriptor) TokenReserve {
 	return TokenReserve {
-		Amount: uint256.NewInt(amt),
-		Symbol: symb,
+		Amount: uint256.NewInt(td.Amount),
+		Symbol: td.Symbol,
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"tse-p3/globals"
 	"tse-p3/ledger"
+	"tse-p3/wallets"
 	"github.com/holiman/uint256"
 	"github.com/cespare/xxhash"
 )
@@ -21,7 +22,7 @@ func (t Trader) GetWallet(sym string) (ledger.Addr, error) {
 	)
 	
 	key = xxhash.Sum64([]byte(sym))
-	addr = t.Wallet[key]
+	addr = t.Wallets[key]
 
 	if addr == 0 {
 		return 0, fmt.Errorf("trader has no wallet for token %v", sym)
@@ -45,7 +46,7 @@ var (
 	key = xxhash.Sum64([]byte(sym))	
 	crnt = t.Wallets[key]
 	
-	if crnt != 0 & !override {
+	if crnt != 0 && !override {
 		return crnt
 	}
 
@@ -53,14 +54,14 @@ var (
 	return addr
 }
 
-func (t Trader) GetNetworth(rateProvider ledger.RateProvider, walletProvider ledger.WalletProvider) {
+func (t Trader) GetNetworth(rateProvider ledger.RateProvider, walletProvider ledger.WalletProvider) *uint256.Int {
 	var (
-		networth	*uint256.Int
 		waddr		ledger.Addr
-		wlt		wallets.Wallet
+		wlt			wallets.Wallet
+		networth	*uint256.Int
 		rate		*uint256.Int
 		worth		*uint256.Int
-		err		error
+		err			error
 	)
 
 	networth = uint256.NewInt(0)
@@ -71,12 +72,12 @@ func (t Trader) GetNetworth(rateProvider ledger.RateProvider, walletProvider led
 			fmt.Printf("trader has invalid wallet: %v\n", waddr)
 			continue
 		}
-		rate, err = rateProvider(wlt.Reserve.Symbol, globals.BaseCurrencySymbol)
+		rate, err = rateProvider(wlt.Reserve.Symbol, globals.TSECurrencySymbol)
 		if err != nil {
 			// this token is disconnected from the base currency
 			continue
 		}
-		networth.AddI(worth.Mul(wlt.Reserve.Amount, rate))
+		networth.Add(networth, worth.Mul(wlt.Reserve.Amount, rate))
 	}
 	return networth
 }

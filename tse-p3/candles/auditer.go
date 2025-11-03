@@ -11,8 +11,8 @@ type Auditer struct {
 }
 
 // NOTE an auditer should be initialized with a starting price and timestamp -- avoids bad candle at start.
-func CreateAuditer(buffsize uint, initPrice *uint256.Int, ts uint64) Auditer {
-	return Auditer {
+func CreateAuditer(buffsize uint, initPrice *uint256.Int, ts uint64) *Auditer {
+	return &Auditer {
 		CandleBuffer: CreateCandleBuffer(buffsize),
 		ActiveCandle: CreateCandle(initPrice, ts),
 	}

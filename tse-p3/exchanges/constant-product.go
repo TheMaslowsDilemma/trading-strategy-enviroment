@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"tse-p3/tokens"
 	"tse-p3/candles"
+	"tse-p3/globals"
 	"github.com/holiman/uint256"
 	"github.com/cespare/xxhash"
 )
@@ -28,11 +29,20 @@ type CpeDescriptor struct {
 	SymbolB string
 }
 
-func CreateConstantProductExchange(cped CpeDescriptor) ConstantProductExchange {
-	return ConstantProductExchange {
-		ReserveA: tokens.CreateTokenReserve(cped.AmountA, cped.SymbolA),
-		ReserveB: tokens.CreateTokenReserve(cped.AmountB, cped.SymbolB),
+func CreateConstantProductExchange(cped CpeDescriptor, tick uint64) ConstantProductExchange {
+	var cpe ConstantProductExchange = ConstantProductExchange {
+		ReserveA: tokens.CreateTokenReserve(tokens.Descriptor {
+			Amount: cped.AmountA,
+			Symbol: cped.SymbolA,
+		}),
+		ReserveB: tokens.CreateTokenReserve(tokens.Descriptor {
+			Amount: cped.AmountB,
+			Symbol: cped.SymbolB,
+		}),
 	}
+
+	cpe.Auditer = candles.CreateAuditer(globals.DefaultAuditerBufferSize, cpe.SpotPriceA(), tick)
+	return cpe
 }
 
 func (exg ConstantProductExchange) SpotPriceA() *uint256.Int {
