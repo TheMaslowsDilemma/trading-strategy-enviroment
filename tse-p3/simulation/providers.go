@@ -6,8 +6,14 @@ import (
 	"tse-p3/exchanges"
 	"tse-p3/ledger"
 	"tse-p3/traders"
+	"tse-p3/transactions"
 	"github.com/holiman/uint256"
 )
+
+func (s *Simulation) txPlacer(tx txs.Tx) {
+	// TODO add logic so that outside entities can call this function
+	// s.MemoryPool.Add(tx)
+}
 
 func (s Simulation) walletProvider(waddr ledger.Addr) (wallets.Wallet, error) {
 	var (

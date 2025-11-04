@@ -36,8 +36,8 @@ func NewSimulation() Simulation {
 		AmountB: globals.USDCurrencyAmount,
 		SymbolB: globals.USDCurrencySymbol,
 	}
-	sim.MainLedger.AddConstantProductExchange(cped, 0) // NOTE we start at tick 0
 
+	sim.MainLedger.AddConstantProductExchange(cped, 0) // NOTE 
 	return sim
 }
 

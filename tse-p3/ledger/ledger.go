@@ -20,10 +20,13 @@ func (l Ledger) String() string {
 
 	wc = 0
 	ec = 0
-	for _, _ = range l.Wallets {
+
+	for _, wlt := range l.Wallets {
+		fmt.Printf("wallet: %v\n", wlt)
 		wc += 1
 	}
-	for _, _ = range l.Exchanges {
+	for _, exg := range l.Exchanges {
+		fmt.Printf("exchange: %v\n", exg)
 		ec += 1
 	}
 	return fmt.Sprintf("{ wallet-count: %v, exchange-count: %v }", wc, ec)

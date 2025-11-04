@@ -2,8 +2,10 @@ package txs
 
 import (
 	"fmt"
-	"github.com/holiman/uint256"
+	"tse-p3/wallets"
+	"tse-p3/exchanges"
 	"tse-p3/ledger"
+	"github.com/holiman/uint256"
 )
 
 type CpeSwap struct {
@@ -13,14 +15,14 @@ type CpeSwap struct {
 	AmountMinOut	*uint256.Int
 	WalletAddr	ledger.Addr
 	ExchangeAddr	ledger.Addr
-	Notify		func (res ledger.TxResult)
+	Notify		func (res TxResult)
 }
 
 // -- returns a partial ledger with values to update -- //
 func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 	var (
-		exg	ConstantProductExchange
-		wlt	wallet.Wallet
+		exg	exchanges.ConstantProductExchange
+		wlt	wallets.Wallet
 		lmod	ledger.Ledger
 		price	*uint256.Int
 //		amtout  *uint256.Int
@@ -35,7 +37,7 @@ func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 	price = exg.SpotPriceA()
 
 	// just print for now
-	fmt.Printf("wallet: %v places trade on exchange %v at price %v", wlt, exg, price)
+	fmt.Printf("wallet: %v places trade on exchange %v at price %v lmod: %v", wlt, exg, price, lmod)
 	
 	return l, nil
 }
