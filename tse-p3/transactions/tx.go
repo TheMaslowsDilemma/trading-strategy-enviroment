@@ -11,6 +11,6 @@ const (
 )
 
 type Tx interface {
-	Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error)
+	Apply(tick uint64, l *ledger.Ledger) (ledger.Ledger, error)
 	Notify(result TxResult)
 }

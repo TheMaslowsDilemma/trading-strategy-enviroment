@@ -9,13 +9,13 @@ import (
 )
 
 type CpeSwap struct {
-	SymbolIn	string
-	SymbolOut	string
-	AmountIn	*uint256.Int
+	SymbolIn		string
+	SymbolOut		string
+	AmountIn		*uint256.Int
 	AmountMinOut	*uint256.Int
-	WalletAddr	ledger.Addr
+	WalletAddr		ledger.Addr
 	ExchangeAddr	ledger.Addr
-	Notify		func (res TxResult)
+	Notify			func (res TxResult)
 }
 
 // -- returns a partial ledger with values to update -- //
@@ -39,5 +39,5 @@ func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 	// just print for now
 	fmt.Printf("wallet: %v places trade on exchange %v at price %v lmod: %v", wlt, exg, price, lmod)
 	
-	return l, nil
+	return lmod, nil
 }

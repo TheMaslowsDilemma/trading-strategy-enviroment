@@ -5,17 +5,24 @@ import (
 	"tse-p3/globals"
 	"tse-p3/ledger"
 	"tse-p3/wallets"
+	"tse-p3/transactions"
 	"github.com/holiman/uint256"
 	"github.com/cespare/xxhash"
 )
 
 type Trader struct {
-	Id		uint64
-	Wallets 	map[uint64] ledger.Addr
-	LastNetworth	*uint256.Int
+	Id			uint64
+	Wallets		map[uint64] ledger.Addr
 }
 
-func (t Trader) GetWallet(sym string) (ledger.Addr, error) {
+func CreateTrader() Trader {
+	return Trader {
+		Id: globals.Rand64(),
+		Wallets: make(map[uint64] ledger.Addr),
+	}
+}
+
+func (t Trader) GetWalletAddr(sym string) (ledger.Addr, error) {
 	var (
 		key	uint64
 		addr	ledger.Addr
@@ -54,7 +61,7 @@ var (
 	return addr
 }
 
-func (t Trader) GetNetworth(rateProvider ledger.RateProvider, walletProvider ledger.WalletProvider) *uint256.Int {
+func (t *Trader) GetNetworth(rateProvider ledger.RateProvider, walletProvider ledger.WalletProvider) *uint256.Int {
 	var (
 		waddr		ledger.Addr
 		wlt			wallets.Wallet
@@ -80,4 +87,40 @@ func (t Trader) GetNetworth(rateProvider ledger.RateProvider, walletProvider led
 		networth.Add(networth, worth.Mul(wlt.Reserve.Amount, rate))
 	}
 	return networth
+
+}
+
+func (t *Trader) TxNotificationHandler(result txs.TxResult) {
+	if result == txs.TxPass {
+		fmt.Println("passed tx")
+	} else {
+		fmt.Println("failed tx")
+	}
+}
+
+func (t *Trader) CreateSwapTx(symIn, symOut string, exchangeAddr ledger.Addr) (txs.CpeSwap, error){
+	var (
+		amtIn		*uint256.Int
+		amtminOut	*uint256.Int
+		waddr		ledger.Addr
+		err			error
+	)
+
+	wltaddr, err = t.GetWalletAddr(symIn)
+	if err != nil {
+		return txs.CpeSwap{ }, fmt.Errorf("trader failed to get wallet: %v", err)
+	}
+
+	amtIn = uint256.NewInt(100)
+	amtminOut = uint256.NewInt(0)
+	
+	return txs.CpeSwap {
+		SymbolIn: symIn,
+		SymbolOut: symOut,
+		AmountIn: amtIn,
+		AmountMinOut: amtminOut,
+		WalletAddr: wltaddr,
+		ExchangeAddr: exchangeAddr,
+		Notify: t.TxNotificationHandler
+	}, nil
 }

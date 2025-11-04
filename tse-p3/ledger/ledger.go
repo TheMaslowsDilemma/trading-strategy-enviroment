@@ -2,9 +2,9 @@ package ledger
 
 import (
 	"fmt"
-	"math/rand"
 	"tse-p3/exchanges"
 	"tse-p3/wallets"
+	"tse-p3/globals"
 )
 
 type Ledger struct {
@@ -40,7 +40,7 @@ func CreateLedger() Ledger {
 }
 
 func RandomAddr() Addr {
-	return Addr(uint64(rand.Uint32()) << 32 | uint64(rand.Uint32()))
+	return Addr(globals.Rand64())
 }
 
 func (l Ledger) AddConstantProductExchange(cd exchanges.CpeDescriptor, tick uint64) Addr {
@@ -77,20 +77,33 @@ func (l Ledger) GetExchange(addr Addr) exchanges.ConstantProductExchange {
 }
 
 // NOTE this is really pseudo merge, it should eventually support deletes
-func (l Ledger) Merge(feat Ledger) {
+func (l *Ledger) Merge(feat Ledger) uint {
 	var (
 		featwlt wallets.Wallet
 		featexg exchanges.ConstantProductExchange
+		cc		uint
 		addr	Addr
+		hash	uint64
 	)
+	// change count = 0
+	cc = 0
 
 	// merge wallet subledger - NOTE we do not do any deletes
 	for addr, featwlt = range feat.Wallets {
-		l.Wallets[addr] = featwlt
+		hash = l.Wallets[addr].Hash()
+		if hash != featwlt.Hash() {
+			l.Wallets[addr] = featwlt
+			cc += 1
+		}
 	}
 
 	// merge exchange subledger
 	for addr, featexg = range feat.Exchanges {
-		l.Exchanges[addr] = featexg
+		hash = l.Exchanges[addr].Hash()
+		if hash != featwlt.Hash() {
+			l.Exchanges[addr] = featexg
+			cc += 1
+		}
 	}
+	return cc
 }

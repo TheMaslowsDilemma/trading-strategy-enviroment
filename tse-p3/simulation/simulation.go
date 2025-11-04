@@ -2,18 +2,25 @@ package simulation
 
 import (
 	"fmt"
+	"sync"
 	"tse-p3/ledger"
+	"tse-p3/memorypool"
 	"tse-p3/traders"
 	"tse-p3/users"
 	"tse-p3/globals"
 	"tse-p3/exchanges"
+	"tse-p3/miner"
 )
 
 type Simulation struct {
 	MainLedger 			ledger.Ledger
+	ScndLedger			ledger.Ledger
+	LedgerLock			sync.Mutex
+	MemoryPool			memorypool.MemoryPool
 	Users				map[uint64] users.User
 	Traders				map[uint64] traders.Trader
 	ExchangeDirectory	map[uint64] ledger.Addr
+	CancelRequested		bool
 }
 
 func NewSimulation() Simulation {
@@ -24,9 +31,11 @@ func NewSimulation() Simulation {
 
 	sim = Simulation {
 		MainLedger: ledger.CreateLedger(),
+		MemoryPool: memorypool.CreateMemoryPool(globals.DefaultMemoryPoolSize),
 		Users: make(map[uint64]users.User),
 		Traders: make(map[uint64]traders.Trader),
 		ExchangeDirectory: make(map[uint64]ledger.Addr),
+		CancelRequested: false,
 	}
 
 	// NOTE this adds the default exchange
@@ -36,8 +45,8 @@ func NewSimulation() Simulation {
 		AmountB: globals.USDCurrencyAmount,
 		SymbolB: globals.USDCurrencySymbol,
 	}
-
-	sim.MainLedger.AddConstantProductExchange(cped, 0) // NOTE 
+	sim.MainLedger.AddConstantProductExchange(cped, 0) // NOTE
+	sim.ScndLedger = miner.CreateSecondary(sim.MainLedger)
 	return sim
 }
 
