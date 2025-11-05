@@ -30,10 +30,11 @@ func (t Trader) GetWalletAddr(sym string) (ledger.Addr, error) {
 	
 	key = xxhash.Sum64([]byte(sym))
 	addr = t.Wallets[key]
-
+	
 	if addr == 0 {
 		return 0, fmt.Errorf("trader has no wallet for token %v", sym)
 	}
+
 	return addr, nil
 }
 
@@ -87,7 +88,6 @@ func (t *Trader) GetNetworth(rateProvider ledger.RateProvider, walletProvider le
 		networth.Add(networth, worth.Mul(wlt.Reserve.Amount, rate))
 	}
 	return networth
-
 }
 
 func (t *Trader) TxNotificationHandler(result txs.TxResult) {
@@ -103,24 +103,28 @@ func (t *Trader) CreateSwapTx(symIn, symOut string, exchangeAddr ledger.Addr) (t
 		amtIn		*uint256.Int
 		amtminOut	*uint256.Int
 		waddr		ledger.Addr
+		needsWlt	bool
 		err			error
 	)
 
-	wltaddr, err = t.GetWalletAddr(symIn)
+	waddr, err = t.GetWalletAddr(symIn)
 	if err != nil {
-		return txs.CpeSwap{ }, fmt.Errorf("trader failed to get wallet: %v", err)
+		needsWlt = true
+	} else {
+		needsWlt = false
 	}
 
 	amtIn = uint256.NewInt(100)
 	amtminOut = uint256.NewInt(0)
-	
+
 	return txs.CpeSwap {
 		SymbolIn: symIn,
 		SymbolOut: symOut,
 		AmountIn: amtIn,
 		AmountMinOut: amtminOut,
-		WalletAddr: wltaddr,
+		WalletAddr: waddr,
+		NeedsWallet: needsWlt,
 		ExchangeAddr: exchangeAddr,
-		Notify: t.TxNotificationHandler
+		Notifier: t.TxNotificationHandler,
 	}, nil
 }

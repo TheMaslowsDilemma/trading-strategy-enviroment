@@ -10,12 +10,11 @@ import (
 	"github.com/holiman/uint256"
 )
 
-func (s *Simulation) txPlacer(tx txs.Tx) {
-	// TODO add logic so that outside entities can call this function
-	// s.MemoryPool.Add(tx)
+func (s *Simulation) placeTx(tx txs.Tx) bool {
+	return s.MemoryPool.Push(tx)
 }
 
-func (s Simulation) walletProvider(waddr ledger.Addr) (wallets.Wallet, error) {
+func (s Simulation) getWallet(waddr ledger.Addr) (wallets.Wallet, error) {
 	var (
 		wlt	wallets.Wallet
 	)
@@ -29,13 +28,13 @@ func (s Simulation) walletProvider(waddr ledger.Addr) (wallets.Wallet, error) {
 	return wlt, nil
 }
 
-func (s Simulation) rateProvider(symbol, inTermsOf string) (*uint256.Int, error) {
+func (s Simulation) getPrice(symbol, inTermsOf string) (*uint256.Int, error) {
 	var (
 		exkey	uint64
 		exaddr	ledger.Addr
 		exg		exchanges.ConstantProductExchange
 	)
-	exkey = exchangeKey(symbol, inTermsOf)
+	exkey = getExchangeKey(symbol, inTermsOf)
 	exaddr = s.ExchangeDirectory[exkey]
 	if exaddr == 0 {
 		return nil, fmt.Errorf("no direct exchange exists for %v <-> %v", symbol, inTermsOf)
@@ -52,7 +51,7 @@ func (s Simulation) rateProvider(symbol, inTermsOf string) (*uint256.Int, error)
 	return exg.SpotPriceB(), nil
 }
 
-func (s Simulation) NetworthProvider(traderKey uint64) (*uint256.Int, error) {
+func (s Simulation) GetNetworth(traderKey uint64) (*uint256.Int, error) {
 	var (
 		tr	traders.Trader
 	)
@@ -61,5 +60,5 @@ func (s Simulation) NetworthProvider(traderKey uint64) (*uint256.Int, error) {
 	if tr.Id == 0 { 
 		return nil, fmt.Errorf("no trader exists for key: %v", traderKey)
 	}
-	return tr.GetNetworth(s.rateProvider, s.walletProvider), nil
+	return tr.GetNetworth(s.getPrice, s.getWallet), nil
 }

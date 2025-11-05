@@ -1,19 +1,37 @@
 package simulation
 
 import (
+	"fmt"
+	"tse-p3/users"
 	"tse-p3/traders"
 	"tse-p3/exchanges"
 	"tse-p3/ledger"
 	"tse-p3/wallets"
 	"tse-p3/globals"
+	//"github.com/cespare/xxhash"
 )
 
-func (s *Simulation) AddUser() uint64 {
-	// create trader
-	// create wallet --> tse default + default amount
+// --- Entity Functionality --- //
+// TODO add maximum slippage
+func (s *Simulation) PlaceUserSwap(userkey uint64, from, to string, amount uint64) {
+	usr := s.Users[userkey]
+	trdr := s.Traders[usr.TraderId]
+	eaddr := ledger.Addr(getExchangeKey(from,to))
+	swaptx, err := trdr.CreateSwapTx(from, to, eaddr)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	s.placeTx(swaptx)
+}
 
+// --- Adding Entities --- //
+
+// TODO better key system 
+func (s *Simulation) AddUser(name string, pubkey uint64) {
 	var (
 		trdr	traders.Trader
+		usr		users.User
 		wd		wallets.WalletDescriptor
 		waddr	ledger.Addr
 	)
@@ -24,28 +42,35 @@ func (s *Simulation) AddUser() uint64 {
 		Symbol: globals.TSECurrencySymbol,
 	}
 
-	waddr = s.AddWallet(wd)
+	waddr = s.addWallet(wd)
 	trdr.AddWallet(wd.Symbol, waddr)
-	s.AddTrader(trdr)
+	s.addTrader(trdr)
 
-	return trdr.Id
+	usr = users.User {
+		Name: name,
+		PublicKey: pubkey,
+		TraderId: trdr.Id,
+	}
+	s.Users[pubkey] = usr 
 }
 
 func (s *Simulation) AddBot() {
 	// TODO
 }
 
-func (s *Simulation) AddTrader(t traders.Trader) {
+func (s *Simulation) addTrader(t traders.Trader) {
 	s.Traders[t.Id] = t
 }
 
-func (s *Simulation) AddWallet(wd wallets.WalletDescriptor) ledger.Addr {
+func (s *Simulation) addWallet(wd wallets.WalletDescriptor) ledger.Addr {
 	return s.MainLedger.AddWallet(wd)
 }
 
-func (s *Simulation) AddExchange(cped exchanges.CpeDescriptor, tick uint64) ledger.Addr {
+func (s *Simulation) addExchange(cped exchanges.CpeDescriptor, tick uint64) ledger.Addr {
 	return s.MainLedger.AddConstantProductExchange(cped, tick)
 }
 
-// NOTE LEFT HERE --- nov. 4 (need this to pass the exchange addr into a traders "make transaction"
-func (s *Simulation) GetExchange(symIn, symOut string) 
+func (s *Simulation) GetExchange(symIn, symOut string) exchanges.ConstantProductExchange{
+	var eaddr uint64 = getExchangeKey(symIn, symOut)
+	return s.MainLedger.GetExchange(ledger.Addr(eaddr))
+}

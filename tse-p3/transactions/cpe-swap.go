@@ -14,8 +14,13 @@ type CpeSwap struct {
 	AmountIn		*uint256.Int
 	AmountMinOut	*uint256.Int
 	WalletAddr		ledger.Addr
+	NeedsWallet		bool
 	ExchangeAddr	ledger.Addr
-	Notify			func (res TxResult)
+	Notifier		func (res TxResult)
+}
+
+func (tx CpeSwap) Notify(res TxResult) {
+	tx.Notifier(res)
 }
 
 // -- returns a partial ledger with values to update -- //
@@ -31,8 +36,17 @@ func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 	// modified ledger
 	lmod = ledger.CreateLedger()
 
+	// --- We might not have a receiving wallet yet, so make it if needed --- ///
+	if tx.NeedsWallet {
+		tx.WalletAddr = lmod.AddWallet(wallets.WalletDescriptor {
+			Amount: 0,
+			Symbol: tx.SymbolOut,
+		})
+		wlt = lmod.GetWallet(tx.WalletAddr)
+	} else {
+		wlt = l.GetWallet(tx.WalletAddr)
+	}
 	// retrieve entities involved in swap
-	wlt = l.GetWallet(tx.WalletAddr)
 	exg = l.GetExchange(tx.ExchangeAddr)
 	price = exg.SpotPriceA()
 

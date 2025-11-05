@@ -12,9 +12,10 @@ func main() {
 	s := simulation.NewSimulation()
 	
 	go (&s).Run()
-
+	(&s).AddUser("tom", 1234)
+	(&s).PlaceUserSwap(1234, "usd", "tse", 10)
 	time.Sleep(5 * time.Second)
-	(&s).AddUser()
+
 	s.CancelRequested = true
 	fmt.Println(s.String())
 }

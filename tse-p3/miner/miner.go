@@ -39,7 +39,7 @@ func NextBlock(tick uint64, mpl *memorypool.MemoryPool, scnd *ledger.Ledger) (ui
 	}
 
 	for _, tx = range txblock {
-		delta, err = tx.Apply(tick, scnd)
+		delta, err = tx.Apply(tick, *scnd)
 		if err != nil {
 			fmt.Printf("Error applying tx: %v\n", err)
 			tx.Notify(txs.TxFail)
