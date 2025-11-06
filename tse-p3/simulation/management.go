@@ -8,29 +8,35 @@ import (
 	"tse-p3/ledger"
 	"tse-p3/wallets"
 	"tse-p3/globals"
-	//"github.com/cespare/xxhash"
+	"tse-p3/transactions"
+	"github.com/holiman/uint256"
 )
 
 // --- Entity Functionality --- //
-// TODO add maximum slippage
 func (s *Simulation) PlaceUserSwap(userkey uint64, from, to string, amount uint64) {
 	usr := s.Users[userkey]
-	trdr := s.Traders[usr.TraderId]
 	eaddr := s.ExchangeDirectory[getExchangeKey(from,to)]
-	swaptx, err := trdr.CreateSwapTx(from, to, eaddr)
-	if err != nil {
-		fmt.Println(err)
-		return
+	
+	swaptx := txs.CpeSwap {
+		SymbolIn: from,
+		SymbolOut: to,
+		AmountIn: uint256.NewInt(1000),
+		AmountMinOut: uint256.NewInt(0),
+		Trader: s.Traders[usr.TraderId],
+		ExchangeAddr: eaddr,
+		Notifier: Notificationator,
 	}
+
 	s.placeTx(swaptx)
 }
 
-// --- Adding Entities --- //
+func Notificationator(res txs.TxResult) {
+	fmt.Printf("tx result: %v\n", res)
+}
 
-// TODO better key system 
 func (s *Simulation) AddUser(name string, pubkey uint64) {
 	var (
-		trdr	traders.Trader
+		trdr	*traders.Trader
 		usr		users.User
 		wd		wallets.WalletDescriptor
 		waddr	ledger.Addr
@@ -42,9 +48,9 @@ func (s *Simulation) AddUser(name string, pubkey uint64) {
 		Symbol: globals.TSECurrencySymbol,
 	}
 
-	waddr = s.addWallet(wd)
-	trdr.AddWallet(wd.Symbol, waddr)
-	s.addTrader(trdr)
+	waddr = s.addWallet(wd) // Add wallet to ledger
+	trdr.AddWallet(wd.Symbol, waddr) // Add wallet address to trader
+	s.addTrader(trdr) // Add Trader to simulation
 
 	usr = users.User {
 		Name: name,
@@ -58,12 +64,12 @@ func (s *Simulation) AddBot() {
 	// TODO
 }
 
-func (s *Simulation) addTrader(t traders.Trader) {
+func (s *Simulation) addTrader(t *traders.Trader) {
 	s.Traders[t.Id] = t
 }
 
 func (s *Simulation) addWallet(wd wallets.WalletDescriptor) ledger.Addr {
-	return s.MainLedger.AddWallet(wd)
+	return (&s.ScndLedger).AddWallet(wd) // NOTE: we add to back ledger because that handles all updates! CAUTION multiple writes
 }
 
 func (s *Simulation) addExchange(cd exchanges.CpeDescriptor, tick uint64) {

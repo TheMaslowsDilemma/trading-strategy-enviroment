@@ -53,7 +53,7 @@ func (s Simulation) getPrice(symbol, inTermsOf string) (*uint256.Int, error) {
 
 func (s Simulation) GetNetworth(traderKey uint64) (*uint256.Int, error) {
 	var (
-		tr	traders.Trader
+		tr	*traders.Trader
 	)
 
 	tr = s.Traders[traderKey]

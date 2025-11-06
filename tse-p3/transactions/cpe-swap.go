@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"tse-p3/wallets"
 	"tse-p3/exchanges"
+	"tse-p3/traders"
 	"tse-p3/ledger"
 	"github.com/holiman/uint256"
 )
@@ -13,8 +14,7 @@ type CpeSwap struct {
 	SymbolOut		string
 	AmountIn		*uint256.Int
 	AmountMinOut	*uint256.Int
-	WalletAddr		ledger.Addr
-	NeedsWallet		bool
+	Trader			*traders.Trader
 	ExchangeAddr	ledger.Addr
 	Notifier		func (res TxResult)
 }
@@ -27,38 +27,39 @@ func (tx CpeSwap) Notify(res TxResult) {
 func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 	var (
 		exg		exchanges.ConstantProductExchange
+		waddr	ledger.Addr
+		haswlt	bool
 		wlt		wallets.Wallet
-		lmod	ledger.Ledger
 		price	*uint256.Int
+		lprime  ledger.Ledger
 		//amtout	*uint256.Int
 	)
 
-	// modified ledger
-	lmod = ledger.CreateLedger()
+	lprime = ledger.CreateLedger()
+	(&lprime).Merge(l)
 
-	// --- We might not have a receiving wallet yet, so make it if needed --- ///
-	if tx.NeedsWallet {
-		tx.WalletAddr = lmod.AddWallet(wallets.WalletDescriptor {
+	waddr, haswlt = tx.Trader.GetWalletAddr(tx.SymbolIn)
+	if !haswlt {
+		waddr = (&lprime).AddWallet(wallets.WalletDescriptor {
 			Amount: 0,
-			Symbol: tx.SymbolOut,
+			Symbol: tx.SymbolIn,
 		})
-		wlt = lmod.GetWallet(tx.WalletAddr)
-	} else {
-		wlt = l.GetWallet(tx.WalletAddr)
+		tx.Trader.AddWallet(tx.SymbolIn, waddr) // give trader the new wallet
+	}
+	wlt = lprime.GetWallet(waddr).Clone()
+	exg = lprime.GetExchange(tx.ExchangeAddr).Clone()
+
+	if exg.Auditer == nil {
+		return lprime, fmt.Errorf("no exchange found %v <-> %v", tx.SymbolIn, tx.SymbolOut)
 	}
 
-	// retrieve entities involved in swap
-	exg = l.GetExchange(tx.ExchangeAddr).Clone()
-	if exg.Auditer == nil {
-		return lmod, fmt.Errorf("no exchange found %v <-> %v", tx.SymbolIn, tx.SymbolOut)
-	}
 	price = exg.SpotPriceA()
 
 	// NOTE this is a test modification 
 	exg.ReserveA.Amount.Sub(exg.ReserveA.Amount, tx.AmountIn)
-	lmod.Exchanges[tx.ExchangeAddr] = exg
-	// just print for now
-	fmt.Printf("wallet: %v executed trade on exchange %v at price %v lmod: %v\n", wlt, exg, price, lmod)
+	exg.Auditer.Audit(price, tick)
+	lprime.Exchanges[tx.ExchangeAddr] = exg
+	lprime.Wallets[waddr] = wlt
 	
-	return lmod, nil
+	return lprime, nil
 }

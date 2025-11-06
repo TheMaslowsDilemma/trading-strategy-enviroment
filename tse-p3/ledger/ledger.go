@@ -53,7 +53,7 @@ func (l *Ledger) AddConstantProductExchange(cd exchanges.CpeDescriptor, tick uin
 	return addr
 }
 
-func (l Ledger) AddWallet(wd wallets.WalletDescriptor) Addr {
+func (l *Ledger) AddWallet(wd wallets.WalletDescriptor) Addr {
 	var (
 		addr Addr
 		wlt  wallets.Wallet
@@ -62,7 +62,6 @@ func (l Ledger) AddWallet(wd wallets.WalletDescriptor) Addr {
 	addr = RandomAddr()
 	wlt  = wallets.CreateWallet(wd)
 	l.Wallets[addr] = wlt
-	
 	return addr
 }
 

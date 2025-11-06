@@ -2,6 +2,7 @@ package tokens
 
 import (
 	"fmt"
+	"tse-p3/globals"
 	"github.com/holiman/uint256"
 	"github.com/cespare/xxhash"
 )
@@ -17,8 +18,10 @@ type Descriptor struct {
 }
 
 func CreateTokenReserve(td Descriptor) TokenReserve {
+	var scaled *uint256.Int = uint256.NewInt(td.Amount)
+	scaled.Mul(scaled, globals.TokenScaleFactor)
 	return TokenReserve {
-		Amount: uint256.NewInt(td.Amount),
+		Amount: scaled,
 		Symbol: td.Symbol,
 	}
 }

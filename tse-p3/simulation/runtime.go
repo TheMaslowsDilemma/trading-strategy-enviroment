@@ -1,7 +1,6 @@
 package simulation
 
 import (
-	"fmt"
 	"time"
 	"tse-p3/miner"
 	"tse-p3/globals"
@@ -15,9 +14,9 @@ func (sim *Simulation) Run() {
 		if sim.CancelRequested {
 			return
 		}
+
 		tick = uint64(time.Now().Unix()) - start
 		sim.MinerTask(tick)
-		fmt.Printf("tick: %v\n", tick)
 		time.Sleep(globals.TimeBetweenBlocks)
 	}
 }
