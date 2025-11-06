@@ -48,13 +48,13 @@ func CreateConstantProductExchange(cped CpeDescriptor, tick uint64) ConstantProd
 func (exg ConstantProductExchange) SpotPriceA() *uint256.Int {
 	// NOTE the price of a in terms of b is calculated via
 	// B / A
-	var spot *uint256.Int = uint256.NewInt(1)
+	var spot *uint256.Int = uint256.NewInt(0)
 	spot.Div(exg.ReserveB.Amount, exg.ReserveA.Amount)
 	return spot
 }
 
 func (exg ConstantProductExchange) SpotPriceB() *uint256.Int {
-	var spot *uint256.Int = uint256.NewInt(1)
+	var spot *uint256.Int = uint256.NewInt(0)
 	spot.Div(exg.ReserveA.Amount, exg.ReserveB.Amount)
 	return spot
 }

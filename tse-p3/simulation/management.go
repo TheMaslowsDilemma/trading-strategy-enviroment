@@ -16,7 +16,7 @@ import (
 func (s *Simulation) PlaceUserSwap(userkey uint64, from, to string, amount uint64) {
 	usr := s.Users[userkey]
 	trdr := s.Traders[usr.TraderId]
-	eaddr := ledger.Addr(getExchangeKey(from,to))
+	eaddr := s.ExchangeDirectory[getExchangeKey(from,to)]
 	swaptx, err := trdr.CreateSwapTx(from, to, eaddr)
 	if err != nil {
 		fmt.Println(err)
@@ -66,8 +66,16 @@ func (s *Simulation) addWallet(wd wallets.WalletDescriptor) ledger.Addr {
 	return s.MainLedger.AddWallet(wd)
 }
 
-func (s *Simulation) addExchange(cped exchanges.CpeDescriptor, tick uint64) ledger.Addr {
-	return s.MainLedger.AddConstantProductExchange(cped, tick)
+func (s *Simulation) addExchange(cd exchanges.CpeDescriptor, tick uint64) {
+	var eaddr ledger.Addr
+	var dirKeyForward, dirKeyBackward uint64
+	// NOTE consider just sorting the symbols in the "getExchangeKey" func 
+	// so both forward and backward return the same key
+	dirKeyForward = getExchangeKey(cd.SymbolA, cd.SymbolB)
+	dirKeyBackward = getExchangeKey(cd.SymbolB, cd.SymbolA)
+	eaddr = s.MainLedger.AddConstantProductExchange(cd, tick)
+	s.ExchangeDirectory[dirKeyForward] = eaddr
+	s.ExchangeDirectory[dirKeyBackward] = eaddr
 }
 
 func (s *Simulation) GetExchange(symIn, symOut string) exchanges.ConstantProductExchange{

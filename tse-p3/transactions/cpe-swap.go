@@ -26,13 +26,13 @@ func (tx CpeSwap) Notify(res TxResult) {
 // -- returns a partial ledger with values to update -- //
 func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 	var (
-		exg	exchanges.ConstantProductExchange
-		wlt	wallets.Wallet
+		exg		exchanges.ConstantProductExchange
+		wlt		wallets.Wallet
 		lmod	ledger.Ledger
 		price	*uint256.Int
-//		amtout  *uint256.Int
+		//amtout	*uint256.Int
 	)
-	
+
 	// modified ledger
 	lmod = ledger.CreateLedger()
 
@@ -46,12 +46,19 @@ func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 	} else {
 		wlt = l.GetWallet(tx.WalletAddr)
 	}
+
 	// retrieve entities involved in swap
-	exg = l.GetExchange(tx.ExchangeAddr)
+	exg = l.GetExchange(tx.ExchangeAddr).Clone()
+	if exg.Auditer == nil {
+		return lmod, fmt.Errorf("no exchange found %v <-> %v", tx.SymbolIn, tx.SymbolOut)
+	}
 	price = exg.SpotPriceA()
 
+	// NOTE this is a test modification 
+	exg.ReserveA.Amount.Sub(exg.ReserveA.Amount, tx.AmountIn)
+	lmod.Exchanges[tx.ExchangeAddr] = exg
 	// just print for now
-	fmt.Printf("wallet: %v places trade on exchange %v at price %v lmod: %v", wlt, exg, price, lmod)
+	fmt.Printf("wallet: %v executed trade on exchange %v at price %v lmod: %v\n", wlt, exg, price, lmod)
 	
 	return lmod, nil
 }

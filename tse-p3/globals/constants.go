@@ -7,7 +7,7 @@ import (
 // ------- Default Currency Exchange --------- //
 var USDCurrencySymbol = "usd"
 const USDCurrencyAmount = 1_000_000_000
-var TSECurrencySymbol = "tsd"
+var TSECurrencySymbol = "tse"
 const TSECurrencyAmount = 1_000_000_000
 
 const UserStartingBalance = 10_000

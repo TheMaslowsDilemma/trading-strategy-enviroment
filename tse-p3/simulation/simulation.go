@@ -45,7 +45,7 @@ func NewSimulation() Simulation {
 		AmountB: globals.USDCurrencyAmount,
 		SymbolB: globals.USDCurrencySymbol,
 	}
-	sim.MainLedger.AddConstantProductExchange(cped, 0) // NOTE
+	sim.addExchange(cped, 0)
 	sim.ScndLedger = miner.CreateSecondary(sim.MainLedger)
 	return sim
 }

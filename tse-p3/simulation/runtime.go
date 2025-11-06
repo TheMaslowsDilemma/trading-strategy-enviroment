@@ -17,7 +17,7 @@ func (sim *Simulation) Run() {
 		}
 		tick = uint64(time.Now().Unix()) - start
 		sim.MinerTask(tick)
-		fmt.Println(tick)
+		fmt.Printf("tick: %v\n", tick)
 		time.Sleep(globals.TimeBetweenBlocks)
 	}
 }
@@ -35,6 +35,6 @@ func (sim *Simulation) MinerTask(tick uint64) {
 
 	// NOTE this is where we bring delta into the main ledger
 	sim.LedgerLock.Lock()
-	sim.MainLedger.Merge(sim.ScndLedger)
+	(&sim.MainLedger).Merge(sim.ScndLedger)
 	sim.LedgerLock.Unlock()
 }

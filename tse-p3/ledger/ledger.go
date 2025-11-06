@@ -21,12 +21,10 @@ func (l Ledger) String() string {
 	wc = 0
 	ec = 0
 
-	for _, wlt := range l.Wallets {
-		fmt.Printf("wallet: %v\n", wlt)
+	for _, _ = range l.Wallets {
 		wc += 1
 	}
-	for _, exg := range l.Exchanges {
-		fmt.Printf("exchange: %v\n", exg)
+	for _, _ = range l.Exchanges {
 		ec += 1
 	}
 	return fmt.Sprintf("{ wallet-count: %v, exchange-count: %v }", wc, ec)
@@ -43,7 +41,7 @@ func RandomAddr() Addr {
 	return Addr(globals.Rand64())
 }
 
-func (l Ledger) AddConstantProductExchange(cd exchanges.CpeDescriptor, tick uint64) Addr {
+func (l *Ledger) AddConstantProductExchange(cd exchanges.CpeDescriptor, tick uint64) Addr {
 	var (
 		addr	Addr
 		cpe		exchanges.ConstantProductExchange

@@ -14,7 +14,7 @@ func CreateSecondary(parent ledger.Ledger) ledger.Ledger {
 	)
 
 	scnd = ledger.CreateLedger()
-	scnd.Merge(parent)
+	(&scnd).Merge(parent)
 	
 	return scnd
 }
