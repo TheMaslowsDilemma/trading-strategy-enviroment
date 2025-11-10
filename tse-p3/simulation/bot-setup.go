@@ -5,26 +5,28 @@ import (
 	"tse-p3/strategy"
 )
 
+type BotDescriptor struct {
+	Strat	strategies.Strategy
+	Name	string
+}
+
 func (sim *Simulation) InitializeTraders() {
-	var InterestingStrategies = []struct {
-	    Strat strategies.Strategy
-	    Name  string
-	}{
+	var InterestingStrategies = []BotDescriptor {
 		{
-	        	Strat: strategies.SimpleStrategy{ShortInterval: 3, LongInterval: 5},
+	        Strat: strategies.SimpleStrategy{ShortInterval: 3, LongInterval: 5},
 			Name:  "simple-short",
-	    	},
-	    	{
+	    },
+	    {
 	       		Strat: strategies.SimpleStrategy{ShortInterval: 4, LongInterval: 6},
 	        	Name:  "simple-long",
-	    	},
-	    	{
+    	},
+    	{
 			Strat: strategies.RandomStrategy{},
-			Name: "random",
+			Name: "rnd-001",
 		},
 		{
 			Strat: strategies.RandomStrategy{},
-			Name: "modnar",
+			Name: "rnd-002",
 		},
 	}
 
