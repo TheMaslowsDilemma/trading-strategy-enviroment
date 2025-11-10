@@ -117,7 +117,7 @@ func (s *Simulation) AddTrader(t *traders.Trader) {
 }
 
 func (s *Simulation) AddWallet(wd wallets.WalletDescriptor) ledger.Addr {
-	return (&s.ScndLedger).AddWallet(wd) // NOTE: we add to back ledger because that handles all updates! CAUTION multiple writes
+	return (&s.SecondaryLedger).AddWallet(wd) // NOTE: we add to back ledger because that handles all updates! CAUTION multiple writes
 }
 
 func (s *Simulation) AddExchange(cd exchanges.CpeDescriptor, tick uint64) {
@@ -127,12 +127,12 @@ func (s *Simulation) AddExchange(cd exchanges.CpeDescriptor, tick uint64) {
 	// so both forward and backward return the same key
 	dirKeyForward = getExchangeKey(cd.SymbolA, cd.SymbolB)
 	dirKeyBackward = getExchangeKey(cd.SymbolB, cd.SymbolA)
-	eaddr = s.MainLedger.AddConstantProductExchange(cd, tick)
+	eaddr = s.PrimaryLedger.AddConstantProductExchange(cd, tick)
 	s.ExchangeDirectory[dirKeyForward] = eaddr
 	s.ExchangeDirectory[dirKeyBackward] = eaddr
 }
 
 func (s *Simulation) GetExchange(symIn, symOut string) exchanges.ConstantProductExchange{
 	var eaddr uint64 = getExchangeKey(symIn, symOut)
-	return s.MainLedger.GetExchange(ledger.Addr(eaddr))
+	return s.PrimaryLedger.GetExchange(ledger.Addr(eaddr))
 }

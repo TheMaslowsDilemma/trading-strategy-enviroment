@@ -25,7 +25,7 @@ const DefaultMemoryPoolSize = 200
 
 // ------ Miner Settings ------- //
 const MaxBlockSize = 7
-const TimeBetweenBlocks = 100 * time.Millisecond
+const TimeBetweenBlocks = 2 * time.Millisecond
 
 // ----- Bot Settings ----- //
-const BotTaskDelay = 50 * time.Millisecond
+const BotTaskDelay = 1 * time.Millisecond

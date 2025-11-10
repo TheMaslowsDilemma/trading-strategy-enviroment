@@ -26,14 +26,14 @@ func (sim *Simulation) MinerTask(tick uint64) {
 		err		error
 	)
 
-	_, err = miner.NextBlock(tick, &sim.MemoryPool, &sim.ScndLedger)
+	_, err = miner.NextBlock(tick, &sim.MemoryPool, &sim.SecondaryLedger)
 	if err != nil {
 		// TODO push err log to sim
 		return
 	}
 
 	// NOTE this is where we bring delta into the main ledger
-	sim.LedgerLock.Lock()
-	(&sim.MainLedger).Merge(sim.ScndLedger)
-	sim.LedgerLock.Unlock()
+	sim.PrimaryLock.Lock()
+	(&sim.PrimaryLedger).Merge(sim.SecondaryLedger)
+	sim.PrimaryLock.Unlock()
 }

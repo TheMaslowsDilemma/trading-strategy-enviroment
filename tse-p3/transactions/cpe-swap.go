@@ -93,7 +93,6 @@ func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 
 	price = exg.SpotPriceA()
 	exg.Auditer.Audit(price, tick)
-	fmt.Printf("[%v] price: %v\n", tick, price)
 	// --- Finally Write changes to our delta ledger --- //
 	ledger_delta.Exchanges[tx.ExchangeAddr] = exg
 	ledger_delta.Wallets[rcv_wlt_addr] = rcv_wlt

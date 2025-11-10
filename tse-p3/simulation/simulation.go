@@ -14,9 +14,10 @@ import (
 )
 
 type Simulation struct {
-	MainLedger 			ledger.Ledger
-	ScndLedger			ledger.Ledger
-	LedgerLock			sync.Mutex
+	PrimaryLedger 		ledger.Ledger
+	SecondaryLedger		ledger.Ledger
+	PrimaryLock			sync.Mutex
+	SecondaryLock		sync.Mutex
 	MemoryPool			memorypool.MemoryPool
 	Users				map[uint64] users.User
 	Bots				map[uint64] *bots.Bot
@@ -32,7 +33,7 @@ func NewSimulation() Simulation {
 	)
 
 	sim = Simulation {
-		MainLedger:			ledger.CreateLedger(),
+		PrimaryLedger:			ledger.CreateLedger(),
 		MemoryPool: 		memorypool.CreateMemoryPool(globals.DefaultMemoryPoolSize),
 		Users: 				make(map[uint64]users.User),
 		Bots: 				make(map[uint64] *bots.Bot),
@@ -51,10 +52,10 @@ func NewSimulation() Simulation {
 	sim.AddExchange(cped, 0)
 	
 
-	sim.ScndLedger = miner.CreateSecondary(sim.MainLedger)
+	sim.SecondaryLedger = miner.CreateSecondary(sim.PrimaryLedger)
 	return sim
 }
 
 func (s Simulation) String() string {
-	return fmt.Sprintf("{ ledger: %v; }", s.MainLedger) 
+	return fmt.Sprintf("{ ledger: %v; }", s.PrimaryLedger) 
 }

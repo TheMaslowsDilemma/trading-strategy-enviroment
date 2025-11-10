@@ -20,7 +20,7 @@ func (s Simulation) GetWallet(waddr ledger.Addr) (wallets.Wallet, error) {
 		wlt	wallets.Wallet
 	)
 
-	wlt = s.MainLedger.GetWallet(waddr)
+	wlt = s.SecondaryLedger.GetWallet(waddr)
 	// NOTE this seems like less than ideal way to check if the wallet exists
 	if wlt.Reserve.Amount == nil {
 		return wallets.Wallet{}, fmt.Errorf("no wallet exists for addr: %v", waddr)
@@ -41,7 +41,7 @@ func (s Simulation) GetPrice(symbol, inTermsOf string) (float64, error) {
 		return 0, fmt.Errorf("no direct exchange exists for %v <-> %v", symbol, inTermsOf)
 	}
 	
-	exg = s.MainLedger.GetExchange(exaddr)
+	exg = s.PrimaryLedger.GetExchange(exaddr)
 	if exg.Auditer == nil {
 		return 0, fmt.Errorf("exchange is malformed or DNE: %v", exaddr)
 	}
@@ -61,7 +61,7 @@ func (s Simulation) GetCandles(symbolA, symbolB string) []candles.Candle {
 	)
 	exkey 	= getExchangeKey(symbolA, symbolB)
 	exaddr 	= s.ExchangeDirectory[exkey]
-	exg 	= s.MainLedger.Exchanges[exaddr]
+	exg 	= s.PrimaryLedger.Exchanges[exaddr]
 
 	if exg.Auditer == nil {
 		return []candles.Candle{}

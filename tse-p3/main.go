@@ -10,12 +10,8 @@ func main() {
 	fmt.Println("--- Trading Stategy Environment: Part Three ---")
 	
 	s := simulation.NewSimulation()
-	
-	go (&s).Run()
-
-	// Add Entities //
-//	(&s).AddUser("tom", 1234)
 	(&s).InitializeTraders()
+	go (&s).Run()
 
 	
 
@@ -23,7 +19,7 @@ func main() {
 		fmt.Printf("[%v] networth: %v\n", bot.Name, bot.Trader.GetNetworth(s.GetPrice, s.GetWallet))
 	}
 
-	time.Sleep(60 * time.Second)
+	time.Sleep(10 * time.Second)
 	s.CancelRequested = true
 	
 	fmt.Println(s.String())
