@@ -30,6 +30,7 @@ func (bot *Bot) Run(isCanceled *bool, candleProvider func(string, string) []cand
 		err			error
 	)
 
+	fmt.Printf("starting [%v] run\n", bot.Name)
 	for {
 		if *isCanceled {
 			return
@@ -42,15 +43,19 @@ func (bot *Bot) Run(isCanceled *bool, candleProvider func(string, string) []cand
 		decision, confidence = bot.Strategy.Decide(cs)
 
 		if decision == strategies.Hold {
+			fmt.Printf("\t[%v] -> HODL\n", bot.Name)
+
 			continue
 		}
 
 		if decision == strategies.Sell {
-
+			fmt.Printf("\t[%v] -> SELL\n", bot.Name)
+			
 			symbol_in	= globals.TSESymbol
 			symbol_out	= globals.USDSymbol
 		} else if decision == strategies.Buy {
-
+			fmt.Printf("\t[%v] -> BUY\n", bot.Name)
+			
 			symbol_in	= globals.USDSymbol
 			symbol_out	= globals.TSESymbol
 		}
@@ -58,6 +63,8 @@ func (bot *Bot) Run(isCanceled *bool, candleProvider func(string, string) []cand
 		waddr, exists = bot.Trader.GetWalletAddr(symbol_in)
 		
 		if !exists {
+			fmt.Printf("\t[%v] can not sell, no money\n", bot.Name)
+
 			continue
 		}
 

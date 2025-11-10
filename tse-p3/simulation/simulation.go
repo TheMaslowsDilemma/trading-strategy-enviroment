@@ -19,7 +19,7 @@ type Simulation struct {
 	LedgerLock			sync.Mutex
 	MemoryPool			memorypool.MemoryPool
 	Users				map[uint64] users.User
-	Bots				map[uint64] bots.Bot
+	Bots				map[uint64] *bots.Bot
 	Traders				map[uint64] *traders.Trader
 	ExchangeDirectory	map[uint64] ledger.Addr
 	CancelRequested		bool
@@ -35,7 +35,7 @@ func NewSimulation() Simulation {
 		MainLedger:			ledger.CreateLedger(),
 		MemoryPool: 		memorypool.CreateMemoryPool(globals.DefaultMemoryPoolSize),
 		Users: 				make(map[uint64]users.User),
-		Bots: 				make(map[uint64]bots.Bot),
+		Bots: 				make(map[uint64] *bots.Bot),
 		Traders: 			make(map[uint64] *traders.Trader),
 		ExchangeDirectory: 	make(map[uint64]ledger.Addr),
 		CancelRequested: 	false,

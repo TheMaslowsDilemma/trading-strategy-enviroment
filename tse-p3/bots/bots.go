@@ -14,6 +14,10 @@ type Bot struct {
 	Trader		*traders.Trader
 }
 
+func (bot *Bot) String() string {
+	return fmt.Sprintf("{ name: %v; id: %v }", bot.Name, bot.Id)
+}
+
 func (bot *Bot) NotificationHandler(res txs.TxResult) {
 	fmt.Printf("[%v] tx %v\n", bot.Name, res)
 }

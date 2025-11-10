@@ -1,6 +1,7 @@
 package simulation
 
 import (
+	"fmt"
 	"tse-p3/strategy"
 )
 
@@ -14,7 +15,7 @@ func (sim *Simulation) InitializeTraders() {
 	        Name:  "simple-short",
 	    },
 		{
-	        Strat: strategies.SimpleStrategy{ShortInterval: 15, LongInterval: 20},
+	        Strat: strategies.SimpleStrategy{ShortInterval: 4, LongInterval: 6},
 	        Name:  "simple-long",
 	    },
 	}
@@ -22,6 +23,7 @@ func (sim *Simulation) InitializeTraders() {
 	for _, is := range InterestingStrategies {
 		botid := sim.AddBot(is.Name, is.Strat)
 		bot := sim.Bots[botid]
+		fmt.Println(bot)
 		go bot.Run(&sim.CancelRequested, sim.GetCandles, sim.PlaceBotSwap, sim.getWallet)
 	}
 }

@@ -108,7 +108,7 @@ func (s *Simulation) AddBot(name string, strat strategies.Strategy) uint64 {
 		Trader: trdr,
 	}
 
-	s.Bots[bot.Id] = bot
+	s.Bots[bot.Id] = &bot
 	return bot.Id
 }
 
