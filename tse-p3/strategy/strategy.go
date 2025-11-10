@@ -1,5 +1,8 @@
 package strategies
 
+import (
+	"tse-p3/candles"
+)
 
 type Action uint8
 const (
@@ -9,5 +12,5 @@ const (
 )
 
 type Strategy interface {
-	Decide()	Action
+	Decide(cs []candles.Candle)	(Action, float64)
 }

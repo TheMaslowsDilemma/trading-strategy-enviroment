@@ -97,7 +97,7 @@ func (l *Ledger) Merge(feat Ledger) uint {
 	// merge exchange subledger
 	for addr, featexg = range feat.Exchanges {
 		hash = l.Exchanges[addr].Hash()
-		if hash != featwlt.Hash() {
+		if hash != featexg.Hash() {
 			l.Exchanges[addr] = featexg
 			cc += 1
 		}

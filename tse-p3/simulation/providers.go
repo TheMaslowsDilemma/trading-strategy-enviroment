@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"fmt"
+	"tse-p3/candles"
 	"tse-p3/wallets"
 	"tse-p3/exchanges"
 	"tse-p3/ledger"
@@ -28,7 +29,7 @@ func (s Simulation) getWallet(waddr ledger.Addr) (wallets.Wallet, error) {
 	return wlt, nil
 }
 
-func (s Simulation) getPrice(symbol, inTermsOf string) (*uint256.Int, error) {
+func (s Simulation) getPrice(symbol, inTermsOf string) (float64, error) {
 	var (
 		exkey	uint64
 		exaddr	ledger.Addr
@@ -37,18 +38,36 @@ func (s Simulation) getPrice(symbol, inTermsOf string) (*uint256.Int, error) {
 	exkey = getExchangeKey(symbol, inTermsOf)
 	exaddr = s.ExchangeDirectory[exkey]
 	if exaddr == 0 {
-		return nil, fmt.Errorf("no direct exchange exists for %v <-> %v", symbol, inTermsOf)
+		return 0, fmt.Errorf("no direct exchange exists for %v <-> %v", symbol, inTermsOf)
 	}
 	
 	exg = s.MainLedger.GetExchange(exaddr)
-	if exg.Auditer == nil { // NOTE another less than ideal existacnce check
-		return nil, fmt.Errorf("exchange is malformed or DNE: %v", exaddr)
+	if exg.Auditer == nil {
+		return 0, fmt.Errorf("exchange is malformed or DNE: %v", exaddr)
 	}
 
 	if symbol == exg.ReserveA.Symbol {
 		return exg.SpotPriceA(), nil
 	}
+
 	return exg.SpotPriceB(), nil
+}
+
+func (s Simulation) GetCandles(symbolA, symbolB string) []candles.Candle {
+		var (
+		exkey	uint64
+		exaddr	ledger.Addr
+		exg		exchanges.ConstantProductExchange
+	)
+	exkey 	= getExchangeKey(symbolA, symbolB)
+	exaddr 	= s.ExchangeDirectory[exkey]
+	exg 	= s.MainLedger.Exchanges[exaddr]
+
+	if exg.Auditer == nil {
+		return []candles.Candle{}
+	}
+	
+	return exg.Auditer.GetCandles()
 }
 
 func (s Simulation) GetNetworth(traderKey uint64) (*uint256.Int, error) {

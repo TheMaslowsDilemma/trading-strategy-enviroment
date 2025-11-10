@@ -2,7 +2,6 @@ package candles
 
 import (
 	"fmt"
-	"github.com/holiman/uint256"
 )
 
 type Auditer struct {
@@ -11,14 +10,14 @@ type Auditer struct {
 }
 
 // NOTE an auditer should be initialized with a starting price and timestamp -- avoids bad candle at start.
-func CreateAuditer(buffsize uint, initPrice *uint256.Int, ts uint64) *Auditer {
+func CreateAuditer(buffsize uint, initPrice float64, ts uint64) *Auditer {
 	return &Auditer {
 		CandleBuffer: CreateCandleBuffer(buffsize),
 		ActiveCandle: CreateCandle(initPrice, ts),
 	}
 }
 
-func (a *Auditer) Audit(price *uint256.Int, tick uint64) {
+func (a *Auditer) Audit(price float64, tick uint64) {
 	if tick != a.ActiveCandle.Ts {
 		a.CandleBuffer.Push(a.ActiveCandle)
 		(&a.ActiveCandle).Start(price, tick)

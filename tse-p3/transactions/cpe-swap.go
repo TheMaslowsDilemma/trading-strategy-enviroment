@@ -9,6 +9,13 @@ import (
 	"github.com/holiman/uint256"
 )
 
+type CpeSwapDescriptor struct {
+	SymbolIn		string
+	SymbolOut		string
+	AmountIn		*uint256.Int
+	AmountMinOut	*uint256.Int
+}
+
 type CpeSwap struct {
 	SymbolIn		string
 	SymbolOut		string
@@ -26,40 +33,63 @@ func (tx CpeSwap) Notify(res TxResult) {
 // -- returns a partial ledger with values to update -- //
 func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 	var (
-		exg		exchanges.ConstantProductExchange
-		waddr	ledger.Addr
-		haswlt	bool
-		wlt		wallets.Wallet
-		price	*uint256.Int
-		lprime  ledger.Ledger
-		//amtout	*uint256.Int
+		exg				exchanges.ConstantProductExchange
+		pyr_wlt			wallets.Wallet
+		rcv_wlt			wallets.Wallet
+		pyr_wlt_addr	ledger.Addr
+		rcv_wlt_addr	ledger.Addr
+		ledger_delta	ledger.Ledger
+		pyr_wlt_exists	bool
+		rcv_wlt_exists	bool
+		amt_out			*uint256.Int
+		price			float64
 	)
 
-	lprime = ledger.CreateLedger()
-	(&lprime).Merge(l)
+	ledger_delta = ledger.CreateLedger()
+	(&ledger_delta).Merge(l)
 
-	waddr, haswlt = tx.Trader.GetWalletAddr(tx.SymbolIn)
-	if !haswlt {
-		waddr = (&lprime).AddWallet(wallets.WalletDescriptor {
-			Amount: 0,
-			Symbol: tx.SymbolIn,
-		})
-		tx.Trader.AddWallet(tx.SymbolIn, waddr) // give trader the new wallet
-	}
-	wlt = lprime.GetWallet(waddr).Clone()
-	exg = lprime.GetExchange(tx.ExchangeAddr).Clone()
-
+	// --- First Find the Exchange --- //
+	exg = ledger_delta.GetExchange(tx.ExchangeAddr).Clone()
 	if exg.Auditer == nil {
-		return lprime, fmt.Errorf("no exchange found %v <-> %v", tx.SymbolIn, tx.SymbolOut)
+		return ledger_delta, fmt.Errorf("no exchange found %v <-> %v", tx.SymbolIn, tx.SymbolOut)
 	}
 
-	price = exg.SpotPriceA()
+	// --- Second Find the Payor and Recipient Wallet Addr --- //
+	pyr_wlt_addr, pyr_wlt_exists = tx.Trader.GetWalletAddr(tx.SymbolIn)
+	if !pyr_wlt_exists {
+		return ledger_delta, fmt.Errorf("payor wallet DNE.")
+	}
 
-	// NOTE this is a test modification 
-	exg.ReserveA.Amount.Sub(exg.ReserveA.Amount, tx.AmountIn)
-	exg.Auditer.Audit(price, tick)
-	lprime.Exchanges[tx.ExchangeAddr] = exg
-	lprime.Wallets[waddr] = wlt
+	// --- If the trader has no wallet to recieve yet then make one --- //
+	rcv_wlt_addr, rcv_wlt_exists = tx.Trader.GetWalletAddr(tx.SymbolOut)
+	if !rcv_wlt_exists {
+		rcv_wlt_addr = (&ledger_delta).AddWallet(wallets.WalletDescriptor {
+			Amount: 0,
+			Symbol: tx.SymbolOut,
+		})
+		tx.Trader.AddWallet(tx.SymbolOut, rcv_wlt_addr)
+	}
+
+	pyr_wlt = ledger_delta.GetWallet(pyr_wlt_addr).Clone()
+	rcv_wlt = ledger_delta.GetWallet(rcv_wlt_addr).Clone()
+
+	if tx.SymbolIn == exg.ReserveA.Symbol {
+		amt_out = exg.SwapAForB(tx.AmountIn)
+		exg.ReserveB.Amount.Sub(exg.ReserveB.Amount, amt_out)
+		exg.ReserveA.Amount.Add(exg.ReserveA.Amount, tx.AmountIn)
+	} else {
+		amt_out = exg.SwapBForA(tx.AmountIn)
+		exg.ReserveA.Amount.Sub(exg.ReserveA.Amount, amt_out)
+		exg.ReserveB.Amount.Add(exg.ReserveB.Amount, tx.AmountIn)
+	}
 	
-	return lprime, nil
+	price = exg.SpotPriceA()
+	exg.Auditer.Audit(price, tick)
+
+	// --- Finally Write changes to our delta ledger --- //
+	ledger_delta.Exchanges[tx.ExchangeAddr] = exg
+	ledger_delta.Wallets[rcv_wlt_addr] = rcv_wlt
+	ledger_delta.Wallets[pyr_wlt_addr] = pyr_wlt
+	
+	return ledger_delta, nil
 }

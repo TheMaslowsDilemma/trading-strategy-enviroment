@@ -23,7 +23,7 @@ func CreateTrader() *Trader {
 
 func (t Trader) GetWalletAddr(sym string) (ledger.Addr, bool) {
 	var (
-		key	uint64
+		key		uint64
 		addr	ledger.Addr
 	)
 	
@@ -66,7 +66,8 @@ func (t *Trader) GetNetworth(rateProvider ledger.RateProvider, walletProvider le
 		waddr		ledger.Addr
 		wlt			wallets.Wallet
 		networth	*uint256.Int
-		rate		*uint256.Int
+		rate		float64
+		ratescld	*uint256.Int
 		worth		*uint256.Int
 		err			error
 	)
@@ -79,11 +80,12 @@ func (t *Trader) GetNetworth(rateProvider ledger.RateProvider, walletProvider le
 			fmt.Printf("trader has invalid wallet: %v\n", waddr)
 			continue
 		}
-		rate, err = rateProvider(wlt.Reserve.Symbol, globals.TSECurrencySymbol)
+		rate, err = rateProvider(wlt.Reserve.Symbol, globals.TSESymbol)
+		ratescld = uint256.NewInt(uint64(rate * globals.TokenScaleFactorf64))
 		if err != nil {
 			continue // There is no exchange connected to tse
 		}
-		networth.Add(networth, worth.Mul(wlt.Reserve.Amount, rate))
+		networth.Add(networth, worth.Div(worth.Mul(wlt.Reserve.Amount, ratescld), globals.TokenScaleFactor))
 	}
 	return networth
 }

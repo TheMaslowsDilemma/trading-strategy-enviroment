@@ -27,8 +27,8 @@ func (cb *CandleBuffer) Push(cndl Candle) {
 func (cb *CandleBuffer) Flush(n uint) []Candle {
 	var (
 		count 	uint
-		i	uint
-		cs	[]Candle
+		i		uint
+		cs		[]Candle
 	)
 	
 	// its empty
@@ -51,8 +51,8 @@ func (cb *CandleBuffer) Flush(n uint) []Candle {
 func (cb CandleBuffer) GetCandles() []Candle {
 	var (
 		count 	uint
-		i	uint
-		cs	[]Candle
+		i		uint
+		cs		[]Candle
 	)
 	
 	if cb.Head == cb.Tail {
@@ -72,8 +72,8 @@ func (cb CandleBuffer) GetCandles() []Candle {
 func (cb CandleBuffer) Clone() CandleBuffer {
 	var (
 		count	uint
-		i	uint
-		cs	[]Candle
+		i		uint
+		cs		[]Candle
 	)
 	
 	cs = make([]Candle, cb.Size)
