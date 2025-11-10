@@ -43,10 +43,10 @@ func NewSimulation() Simulation {
 
 	// NOTE this adds the default exchange
 	cped = exchanges.CpeDescriptor {
-		AmountB: globals.TSECurrencyAmount,
-		SymbolB: globals.TSESymbol,
-		AmountA: globals.USDCurrencyAmount,
-		SymbolA: globals.USDSymbol,
+		AmountA: globals.TSECurrencyAmount,
+		SymbolA: globals.TSESymbol,
+		AmountB: globals.USDCurrencyAmount,
+		SymbolB: globals.USDSymbol,
 	}
 	sim.AddExchange(cped, 0)
 	

@@ -39,23 +39,21 @@ func (bot *Bot) Run(isCanceled *bool, candleProvider func(string, string) []cand
 		time.Sleep(globals.BotTaskDelay)
 		tick += 1
 
+		if (bot.PendingTx) {
+			continue
+		}
+
 		cs = candleProvider(globals.USDSymbol, globals.TSESymbol)
 		decision, confidence = bot.Strategy.Decide(cs)
 
 		if decision == strategies.Hold {
-			fmt.Printf("\t[%v] -> HODL\n", bot.Name)
-
 			continue
 		}
 
 		if decision == strategies.Sell {
-			fmt.Printf("\t[%v] -> SELL\n", bot.Name)
-			
 			symbol_in	= globals.TSESymbol
 			symbol_out	= globals.USDSymbol
 		} else if decision == strategies.Buy {
-			fmt.Printf("\t[%v] -> BUY\n", bot.Name)
-			
 			symbol_in	= globals.USDSymbol
 			symbol_out	= globals.TSESymbol
 		}
@@ -63,8 +61,6 @@ func (bot *Bot) Run(isCanceled *bool, candleProvider func(string, string) []cand
 		waddr, exists = bot.Trader.GetWalletAddr(symbol_in)
 		
 		if !exists {
-			fmt.Printf("\t[%v] can not sell, no money\n", bot.Name)
-
 			continue
 		}
 
@@ -75,7 +71,7 @@ func (bot *Bot) Run(isCanceled *bool, candleProvider func(string, string) []cand
 		}
 
 		cnf_scaled = uint256.NewInt(uint64(confidence * globals.TokenScaleFactorf64))
-		amount_in =	cnf_scaled.Div(cnf_scaled.Mul(cnf_scaled, wlt.Reserve.Amount), globals.TokenScaleFactor)
+		amount_in = cnf_scaled.Div(cnf_scaled.Mul(cnf_scaled, wlt.Reserve.Amount), globals.TokenScaleFactor)
 		amount_out = uint256.NewInt(0)
 
 		dscr = txs.CpeSwapDescriptor {
@@ -83,10 +79,11 @@ func (bot *Bot) Run(isCanceled *bool, candleProvider func(string, string) []cand
 			SymbolIn: 	symbol_in,
 			AmountMinOut:	amount_out,
 			SymbolOut:	symbol_out,
+			Notifier:	bot.NotificationHandler,
 		}
+	 	bot.PendingTx = true
 
-	 	placeSwap(bot.Id, dscr)
-
+		placeSwap(bot.Id, dscr)
 	}
 }
 

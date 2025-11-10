@@ -9,15 +9,16 @@ import (
 
 type Bot struct {
 	Name		string
-	Id			uint64
+	PendingTx	bool
+	Id		uint64
 	Strategy	strategies.Strategy
 	Trader		*traders.Trader
 }
 
 func (bot *Bot) String() string {
-	return fmt.Sprintf("{ name: %v; id: %v }", bot.Name, bot.Id)
+	return fmt.Sprintf("{ name: %v; id: %v; pnd-tx: %v}", bot.Name, bot.Id, bot.PendingTx)
 }
 
 func (bot *Bot) NotificationHandler(res txs.TxResult) {
-	fmt.Printf("[%v] tx %v\n", bot.Name, res)
+	bot.PendingTx = false
 }

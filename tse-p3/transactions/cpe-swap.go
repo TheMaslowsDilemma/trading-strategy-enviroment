@@ -10,19 +10,20 @@ import (
 )
 
 type CpeSwapDescriptor struct {
-	SymbolIn		string
-	SymbolOut		string
-	AmountIn		*uint256.Int
+	SymbolIn	string
+	SymbolOut	string
+	AmountIn	*uint256.Int
 	AmountMinOut	*uint256.Int
+	Notifier	func (res TxResult)
 }
 
 type CpeSwap struct {
 	SymbolIn		string
 	SymbolOut		string
 	AmountIn		*uint256.Int
-	AmountMinOut	*uint256.Int
+	AmountMinOut		*uint256.Int
 	Trader			*traders.Trader
-	ExchangeAddr	ledger.Addr
+	ExchangeAddr		ledger.Addr
 	Notifier		func (res TxResult)
 }
 
@@ -33,14 +34,14 @@ func (tx CpeSwap) Notify(res TxResult) {
 // -- returns a partial ledger with values to update -- //
 func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 	var (
-		exg				exchanges.ConstantProductExchange
+		exg			exchanges.ConstantProductExchange
 		pyr_wlt			wallets.Wallet
 		rcv_wlt			wallets.Wallet
-		pyr_wlt_addr	ledger.Addr
-		rcv_wlt_addr	ledger.Addr
-		ledger_delta	ledger.Ledger
-		pyr_wlt_exists	bool
-		rcv_wlt_exists	bool
+		pyr_wlt_addr		ledger.Addr
+		rcv_wlt_addr		ledger.Addr
+		ledger_delta		ledger.Ledger
+		pyr_wlt_exists		bool
+		rcv_wlt_exists		bool
 		amt_out			*uint256.Int
 		price			float64
 	)
@@ -73,6 +74,9 @@ func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 	pyr_wlt = ledger_delta.GetWallet(pyr_wlt_addr).Clone()
 	rcv_wlt = ledger_delta.GetWallet(rcv_wlt_addr).Clone()
 
+	if pyr_wlt.Reserve.Amount.Lt(tx.AmountIn) {
+		return ledger_delta, fmt.Errorf("insufficient funds.")
+	}
 	if tx.SymbolIn == exg.ReserveA.Symbol {
 		amt_out = exg.SwapAForB(tx.AmountIn)
 		exg.ReserveB.Amount.Sub(exg.ReserveB.Amount, amt_out)
@@ -82,10 +86,14 @@ func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 		exg.ReserveA.Amount.Sub(exg.ReserveA.Amount, amt_out)
 		exg.ReserveB.Amount.Add(exg.ReserveB.Amount, tx.AmountIn)
 	}
-	
+
+	// Update the Traders Wallets
+	pyr_wlt.Reserve.Amount.Sub(pyr_wlt.Reserve.Amount, tx.AmountIn)
+	rcv_wlt.Reserve.Amount.Add(rcv_wlt.Reserve.Amount, amt_out)
+
 	price = exg.SpotPriceA()
 	exg.Auditer.Audit(price, tick)
-
+	fmt.Printf("[%v] price: %v\n", tick, price)
 	// --- Finally Write changes to our delta ledger --- //
 	ledger_delta.Exchanges[tx.ExchangeAddr] = exg
 	ledger_delta.Wallets[rcv_wlt_addr] = rcv_wlt

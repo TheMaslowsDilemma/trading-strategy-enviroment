@@ -15,7 +15,7 @@ func (s *Simulation) placeTx(tx txs.Tx) bool {
 	return s.MemoryPool.Push(tx)
 }
 
-func (s Simulation) getWallet(waddr ledger.Addr) (wallets.Wallet, error) {
+func (s Simulation) GetWallet(waddr ledger.Addr) (wallets.Wallet, error) {
 	var (
 		wlt	wallets.Wallet
 	)
@@ -29,7 +29,7 @@ func (s Simulation) getWallet(waddr ledger.Addr) (wallets.Wallet, error) {
 	return wlt, nil
 }
 
-func (s Simulation) getPrice(symbol, inTermsOf string) (float64, error) {
+func (s Simulation) GetPrice(symbol, inTermsOf string) (float64, error) {
 	var (
 		exkey	uint64
 		exaddr	ledger.Addr
@@ -79,5 +79,5 @@ func (s Simulation) GetNetworth(traderKey uint64) (*uint256.Int, error) {
 	if tr.Id == 0 { 
 		return nil, fmt.Errorf("no trader exists for key: %v", traderKey)
 	}
-	return tr.GetNetworth(s.getPrice, s.getWallet), nil
+	return tr.GetNetworth(s.GetPrice, s.GetWallet), nil
 }

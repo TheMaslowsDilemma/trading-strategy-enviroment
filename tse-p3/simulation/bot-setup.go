@@ -10,20 +10,28 @@ func (sim *Simulation) InitializeTraders() {
 	    Strat strategies.Strategy
 	    Name  string
 	}{
-	    {
-	        Strat: strategies.SimpleStrategy{ShortInterval: 3, LongInterval: 5},
-	        Name:  "simple-short",
-	    },
 		{
-	        Strat: strategies.SimpleStrategy{ShortInterval: 4, LongInterval: 6},
-	        Name:  "simple-long",
-	    },
+	        	Strat: strategies.SimpleStrategy{ShortInterval: 3, LongInterval: 5},
+			Name:  "simple-short",
+	    	},
+	    	{
+	       		Strat: strategies.SimpleStrategy{ShortInterval: 4, LongInterval: 6},
+	        	Name:  "simple-long",
+	    	},
+	    	{
+			Strat: strategies.RandomStrategy{},
+			Name: "random",
+		},
+		{
+			Strat: strategies.RandomStrategy{},
+			Name: "modnar",
+		},
 	}
 
 	for _, is := range InterestingStrategies {
 		botid := sim.AddBot(is.Name, is.Strat)
 		bot := sim.Bots[botid]
 		fmt.Println(bot)
-		go bot.Run(&sim.CancelRequested, sim.GetCandles, sim.PlaceBotSwap, sim.getWallet)
+		go bot.Run(&sim.CancelRequested, sim.GetCandles, sim.PlaceBotSwap, sim.GetWallet)
 	}
 }

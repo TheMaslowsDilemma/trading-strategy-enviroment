@@ -44,7 +44,7 @@ func (s *Simulation) PlaceBotSwap(botkey uint64, dscr txs.CpeSwapDescriptor) {
 			AmountMinOut: dscr.AmountMinOut,
 			ExchangeAddr: eaddr,
 			Trader: bot.Trader,
-			Notifier: bot.NotificationHandler,
+			Notifier: dscr.Notifier,
 	}
 	s.placeTx(swaptx)
 }
@@ -59,15 +59,15 @@ func Notificationator(name string) func (txs.TxResult) {
 func (s *Simulation) AddUser(name string, pubkey uint64) {
 	var (
 		trdr	*traders.Trader
-		usr		users.User
-		wd		wallets.WalletDescriptor
+		usr	users.User
+		wd	wallets.WalletDescriptor
 		waddr	ledger.Addr
 	)
 
 	trdr = traders.CreateTrader()
 	wd = wallets.WalletDescriptor {
 		Amount: globals.UserStartingBalance,
-		Symbol: globals.TSESymbol,
+		Symbol: globals.USDSymbol,
 	}
 
 	waddr = s.AddWallet(wd) // Add wallet to ledger
@@ -86,8 +86,8 @@ func (s *Simulation) AddUser(name string, pubkey uint64) {
 func (s *Simulation) AddBot(name string, strat strategies.Strategy) uint64 {
 		var (
 		trdr	*traders.Trader
-		bot		bots.Bot
-		wd		wallets.WalletDescriptor
+		bot	bots.Bot
+		wd	wallets.WalletDescriptor
 		waddr	ledger.Addr
 	)
 
