@@ -79,10 +79,16 @@ func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 	}
 	if tx.SymbolIn == exg.ReserveA.Symbol {
 		amt_out = exg.SwapAForB(tx.AmountIn)
+		if amt_out.Lt(tx.AmountMinOut) {
+    		return ledger_delta, fmt.Errorf("slippage: amt_out %v < min %v", amt_out, tx.AmountMinOut)
+		}
 		exg.ReserveB.Amount.Sub(exg.ReserveB.Amount, amt_out)
 		exg.ReserveA.Amount.Add(exg.ReserveA.Amount, tx.AmountIn)
 	} else {
 		amt_out = exg.SwapBForA(tx.AmountIn)
+		if amt_out.Lt(tx.AmountMinOut) {
+    		return ledger_delta, fmt.Errorf("slippage: amt_out %v < min %v", amt_out, tx.AmountMinOut)
+		}
 		exg.ReserveA.Amount.Sub(exg.ReserveA.Amount, amt_out)
 		exg.ReserveB.Amount.Add(exg.ReserveB.Amount, tx.AmountIn)
 	}
