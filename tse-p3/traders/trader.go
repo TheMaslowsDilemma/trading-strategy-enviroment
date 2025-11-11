@@ -61,18 +61,17 @@ func (t *Trader) SetWallet(sym string, addr ledger.Addr, override bool) ledger.A
 	return addr
 }
 
-func (t *Trader) GetNetworth(rateProvider ledger.RateProvider, walletProvider ledger.WalletProvider) *uint256.Int {
+func (t *Trader) GetNetworth(rateProvider ledger.RateProvider, walletProvider ledger.WalletProvider) float64 {
 	var (
 		waddr		ledger.Addr
 		wlt			wallets.Wallet
-		networth	*uint256.Int
+		networth	float64
 		rate		float64
 		ratescld	*uint256.Int
 		worth		*uint256.Int
 		err			error
 	)
-
-	networth = uint256.NewInt(0)
+	networth = 0.0
 	worth	 = uint256.NewInt(0)
 	for _, waddr = range t.Wallets {
 		wlt, err = walletProvider(waddr)
@@ -85,7 +84,7 @@ func (t *Trader) GetNetworth(rateProvider ledger.RateProvider, walletProvider le
 		if err != nil {
 			continue // There is no exchange connected to tse
 		}
-		networth.Add(networth, worth.Div(worth.Mul(wlt.Reserve.Amount, ratescld), globals.TokenScaleFactor))
+		networth += worth.Div(worth.Mul(wlt.Reserve.Amount, ratescld), globals.TokenScaleFactor).Float64()
 	}
 	return networth
 }

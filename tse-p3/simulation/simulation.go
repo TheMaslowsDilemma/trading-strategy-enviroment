@@ -18,6 +18,7 @@ type Simulation struct {
 	SecondaryLedger		ledger.Ledger
 	PrimaryLock			sync.Mutex
 	SecondaryLock		sync.Mutex
+	TraderLock			sync.Mutex
 	MemoryPool			memorypool.MemoryPool
 	Users				map[uint64] users.User
 	Bots				map[uint64] *bots.Bot
@@ -33,7 +34,7 @@ func NewSimulation() Simulation {
 	)
 
 	sim = Simulation {
-		PrimaryLedger:			ledger.CreateLedger(),
+		PrimaryLedger:		ledger.CreateLedger(),
 		MemoryPool: 		memorypool.CreateMemoryPool(globals.DefaultMemoryPoolSize),
 		Users: 				make(map[uint64]users.User),
 		Bots: 				make(map[uint64] *bots.Bot),
@@ -50,8 +51,6 @@ func NewSimulation() Simulation {
 		SymbolB: globals.USDSymbol,
 	}
 	sim.AddExchange(cped, 0)
-	
-
 	sim.SecondaryLedger = miner.CreateSecondary(sim.PrimaryLedger)
 	return sim
 }

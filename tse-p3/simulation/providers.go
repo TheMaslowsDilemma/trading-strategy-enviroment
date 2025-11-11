@@ -8,19 +8,22 @@ import (
 	"tse-p3/ledger"
 	"tse-p3/traders"
 	"tse-p3/transactions"
-	"github.com/holiman/uint256"
+	"tse-p3/globals"
 )
 
 func (s *Simulation) placeTx(tx txs.Tx) bool {
 	return s.MemoryPool.Push(tx)
 }
 
-func (s Simulation) GetWallet(waddr ledger.Addr) (wallets.Wallet, error) {
+func (s *Simulation) GetWallet(waddr ledger.Addr) (wallets.Wallet, error) {
 	var (
 		wlt	wallets.Wallet
 	)
 
-	wlt = s.SecondaryLedger.GetWallet(waddr)
+	s.SecondaryLock.Lock()
+	wlt = s.PrimaryLedger.GetWallet(waddr)
+	s.SecondaryLock.Unlock()
+
 	// NOTE this seems like less than ideal way to check if the wallet exists
 	if wlt.Reserve.Amount == nil {
 		return wallets.Wallet{}, fmt.Errorf("no wallet exists for addr: %v", waddr)
@@ -29,19 +32,27 @@ func (s Simulation) GetWallet(waddr ledger.Addr) (wallets.Wallet, error) {
 	return wlt, nil
 }
 
-func (s Simulation) GetPrice(symbol, inTermsOf string) (float64, error) {
+func (s *Simulation) GetPrice(symbol, inTermsOf string) (float64, error) {
 	var (
 		exkey	uint64
 		exaddr	ledger.Addr
 		exg		exchanges.ConstantProductExchange
 	)
-	exkey = getExchangeKey(symbol, inTermsOf)
+
+	if (symbol == inTermsOf) {
+		return 1.0, nil
+	}
+	
+	exkey = globals.GetExchangeKey(symbol, inTermsOf)
 	exaddr = s.ExchangeDirectory[exkey]
 	if exaddr == 0 {
 		return 0, fmt.Errorf("no direct exchange exists for %v <-> %v", symbol, inTermsOf)
 	}
 	
+	s.PrimaryLock.Lock()
 	exg = s.PrimaryLedger.GetExchange(exaddr)
+	s.PrimaryLock.Unlock()
+
 	if exg.Auditer == nil {
 		return 0, fmt.Errorf("exchange is malformed or DNE: %v", exaddr)
 	}
@@ -53,15 +64,18 @@ func (s Simulation) GetPrice(symbol, inTermsOf string) (float64, error) {
 	return exg.SpotPriceB(), nil
 }
 
-func (s Simulation) GetCandles(symbolA, symbolB string) []candles.Candle {
+func (s *Simulation) GetCandles(symbolA, symbolB string) []candles.Candle {
 		var (
 		exkey	uint64
 		exaddr	ledger.Addr
 		exg		exchanges.ConstantProductExchange
 	)
-	exkey 	= getExchangeKey(symbolA, symbolB)
+	exkey 	= globals.GetExchangeKey(symbolA, symbolB)
+	s.PrimaryLock.Lock()
 	exaddr 	= s.ExchangeDirectory[exkey]
 	exg 	= s.PrimaryLedger.Exchanges[exaddr]
+	s.PrimaryLock.Unlock()
+
 
 	if exg.Auditer == nil {
 		return []candles.Candle{}
@@ -70,14 +84,30 @@ func (s Simulation) GetCandles(symbolA, symbolB string) []candles.Candle {
 	return exg.Auditer.GetCandles()
 }
 
-func (s Simulation) GetNetworth(traderKey uint64) (*uint256.Int, error) {
+func (s *Simulation) GetNetworth(traderKey uint64) (float64, error) {
 	var (
 		tr	*traders.Trader
 	)
 
 	tr = s.Traders[traderKey]
 	if tr.Id == 0 { 
-		return nil, fmt.Errorf("no trader exists for key: %v", traderKey)
+		return 0.0, fmt.Errorf("no trader exists for key: %v", traderKey)
 	}
 	return tr.GetNetworth(s.GetPrice, s.GetWallet), nil
+}
+
+func (s *Simulation) GetExchange(symIn, symOut string) exchanges.ConstantProductExchange{
+	var (
+		exg_key	uint64
+		exg_adr	ledger.Addr
+		cpe		exchanges.ConstantProductExchange
+	)
+	exg_key = globals.GetExchangeKey(symIn, symOut)
+	exg_adr = s.ExchangeDirectory[exg_key]
+
+	s.PrimaryLock.Lock()
+	cpe = s.PrimaryLedger.GetExchange(exg_adr)
+	s.PrimaryLock.Unlock()
+
+	return cpe
 }

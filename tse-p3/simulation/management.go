@@ -17,7 +17,7 @@ import (
 // --- Entity Functionality --- //
 func (s *Simulation) PlaceUserSwap(userkey uint64, from, to string, amount uint64) {
 	usr := s.Users[userkey]
-	eaddr := s.ExchangeDirectory[getExchangeKey(from,to)]
+	eaddr := s.ExchangeDirectory[globals.GetExchangeKey(from,to)]
 	amt_in := uint256.NewInt(amount)
 
 	swaptx := txs.CpeSwap {
@@ -35,7 +35,7 @@ func (s *Simulation) PlaceUserSwap(userkey uint64, from, to string, amount uint6
 
 func (s *Simulation) PlaceBotSwap(botkey uint64, dscr txs.CpeSwapDescriptor) {
 	bot := s.Bots[botkey]
-	eaddr := s.ExchangeDirectory[getExchangeKey(dscr.SymbolIn, dscr.SymbolOut)]
+	eaddr := s.ExchangeDirectory[globals.GetExchangeKey(dscr.SymbolIn, dscr.SymbolOut)]
 	
 	swaptx := txs.CpeSwap {
 			SymbolIn: dscr.SymbolIn,
@@ -59,8 +59,8 @@ func Notificationator(name string) func (txs.TxResult) {
 func (s *Simulation) AddUser(name string, pubkey uint64) {
 	var (
 		trdr	*traders.Trader
-		usr	users.User
-		wd	wallets.WalletDescriptor
+		usr		users.User
+		wd		wallets.WalletDescriptor
 		waddr	ledger.Addr
 	)
 
@@ -86,8 +86,8 @@ func (s *Simulation) AddUser(name string, pubkey uint64) {
 func (s *Simulation) AddBot(name string, strat strategies.Strategy) uint64 {
 		var (
 		trdr	*traders.Trader
-		bot	bots.Bot
-		wd	wallets.WalletDescriptor
+		bot		bots.Bot
+		wd		wallets.WalletDescriptor
 		waddr	ledger.Addr
 	)
 
@@ -117,22 +117,25 @@ func (s *Simulation) AddTrader(t *traders.Trader) {
 }
 
 func (s *Simulation) AddWallet(wd wallets.WalletDescriptor) ledger.Addr {
-	return (&s.SecondaryLedger).AddWallet(wd) // NOTE: we add to back ledger because that handles all updates! CAUTION multiple writes
+	var waddr ledger.Addr
+	s.SecondaryLock.Lock()
+	waddr = (&s.SecondaryLedger).AddWallet(wd) // NOTE: we add to back ledger because that handles all updates! CAUTION multiple writes
+	s.SecondaryLock.Unlock()
+	return waddr
 }
 
 func (s *Simulation) AddExchange(cd exchanges.CpeDescriptor, tick uint64) {
 	var eaddr ledger.Addr
 	var dirKeyForward, dirKeyBackward uint64
-	// NOTE consider just sorting the symbols in the "getExchangeKey" func
+	// NOTE consider just sorting the symbols in the "globals.GetExchangeKey" func
 	// so both forward and backward return the same key
-	dirKeyForward = getExchangeKey(cd.SymbolA, cd.SymbolB)
-	dirKeyBackward = getExchangeKey(cd.SymbolB, cd.SymbolA)
+	dirKeyForward = globals.GetExchangeKey(cd.SymbolA, cd.SymbolB)
+	dirKeyBackward = globals.GetExchangeKey(cd.SymbolB, cd.SymbolA)
+
+	s.PrimaryLock.Lock()
 	eaddr = s.PrimaryLedger.AddConstantProductExchange(cd, tick)
+	s.PrimaryLock.Unlock()
+
 	s.ExchangeDirectory[dirKeyForward] = eaddr
 	s.ExchangeDirectory[dirKeyBackward] = eaddr
-}
-
-func (s *Simulation) GetExchange(symIn, symOut string) exchanges.ConstantProductExchange{
-	var eaddr uint64 = getExchangeKey(symIn, symOut)
-	return s.PrimaryLedger.GetExchange(ledger.Addr(eaddr))
 }
