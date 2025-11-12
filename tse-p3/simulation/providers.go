@@ -20,9 +20,9 @@ func (s *Simulation) GetWallet(waddr ledger.Addr) (wallets.Wallet, error) {
 		wlt	wallets.Wallet
 	)
 
-	s.SecondaryLock.Lock()
+	s.PrimaryLock.Lock()
 	wlt = s.PrimaryLedger.GetWallet(waddr)
-	s.SecondaryLock.Unlock()
+	s.PrimaryLock.Unlock()
 
 	// NOTE this seems like less than ideal way to check if the wallet exists
 	if wlt.Reserve.Amount == nil {

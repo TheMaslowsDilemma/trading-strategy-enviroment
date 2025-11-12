@@ -74,9 +74,12 @@ func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 	pyr_wlt = ledger_delta.GetWallet(pyr_wlt_addr).Clone()
 	rcv_wlt = ledger_delta.GetWallet(rcv_wlt_addr).Clone()
 
+	// --- Check the Payor can pay --- //
 	if pyr_wlt.Reserve.Amount.Lt(tx.AmountIn) {
 		return ledger_delta, fmt.Errorf("insufficient funds.")
 	}
+
+	// --- Check for over slippage, calc output, update exchange reserves --- //
 	if tx.SymbolIn == exg.ReserveA.Symbol {
 		amt_out = exg.SwapAForB(tx.AmountIn)
 		if amt_out.Lt(tx.AmountMinOut) {
@@ -93,6 +96,8 @@ func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 		exg.ReserveB.Amount.Add(exg.ReserveB.Amount, tx.AmountIn)
 	}
 
+	fmt.Printf("\t%v %v ==> %v %v\n", tx.AmountIn, tx.SymbolIn, amt_out, tx.SymbolOut)
+	
 	// Update the Traders Wallets
 	pyr_wlt.Reserve.Amount.Sub(pyr_wlt.Reserve.Amount, tx.AmountIn)
 	rcv_wlt.Reserve.Amount.Add(rcv_wlt.Reserve.Amount, amt_out)

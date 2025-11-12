@@ -24,7 +24,7 @@ func (s *Simulation) PlaceUserSwap(userkey uint64, from, to string, amount uint6
 		SymbolIn: from,
 		SymbolOut: to,
 		AmountIn: amt_in,
-		AmountMinOut: uint256.NewInt(0),
+		AmountMinOut: uint256.NewInt(1),
 		Trader: s.Traders[usr.TraderId],
 		ExchangeAddr: eaddr,
 		Notifier: Notificationator(usr.Name),

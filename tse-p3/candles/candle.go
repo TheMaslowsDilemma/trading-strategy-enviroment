@@ -31,14 +31,15 @@ func (c *Candle) Start(price float64, ts uint64) {
 }
 
 func (c *Candle) Add(price float64) {
-	if c.High >= price {
+	if c.High <= price {
 		c.High = price
 	}
-	if c.Low <= price {
+	if c.Low >= price {
 		c.Low = price
 	}
 	c.Close = price
 }
+
 
 func (c Candle) String() string {
 	return fmt.Sprintf("{ o: %v, h: %v, l: %v, c: %v }", c.Open, c.High, c.Low, c.Close)

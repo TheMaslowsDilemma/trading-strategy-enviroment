@@ -72,7 +72,7 @@ func (bot *Bot) Run(isCanceled *bool, candleProvider func(string, string) []cand
 
 		cnf_scaled = uint256.NewInt(uint64(confidence * globals.TokenScaleFactorf64))
 		amount_in = cnf_scaled.Div(cnf_scaled.Mul(cnf_scaled, wlt.Reserve.Amount), globals.TokenScaleFactor)
-		amount_out = uint256.NewInt(0)
+		amount_out = uint256.NewInt(1)
 
 		dscr = txs.CpeSwapDescriptor {
 			AmountIn:	amount_in,

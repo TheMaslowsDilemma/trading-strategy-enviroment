@@ -19,7 +19,6 @@ import (
 type ConstantProductExchange struct {
 	ReserveA	tokens.TokenReserve
 	ReserveB	tokens.TokenReserve
-	K			*uint256.Int
 	Auditer		*candles.Auditer // consider note
 }
 
@@ -40,7 +39,6 @@ func CreateConstantProductExchange(cd CpeDescriptor, tick uint64) ConstantProduc
 			Amount: cd.AmountB,
 			Symbol: cd.SymbolB,
 		}),
-		K: uint256.NewInt(0), // NOTE this is not used until swaps
 	}
 
 	cpe.Auditer = candles.CreateAuditer(globals.DefaultAuditerBufferSize, cpe.SpotPriceA(), tick)
@@ -74,39 +72,51 @@ func (exg ConstantProductExchange) SpotPriceB() float64 {
 }
 
 func (exg ConstantProductExchange) SwapAForB(amt_in *uint256.Int) *uint256.Int {
-	var res *uint256.Int = uint256.NewInt(0)
-	res.Add(amt_in, exg.ReserveA.Amount)
-	exg.K.Mul(exg.ReserveA.Amount, exg.ReserveB.Amount)
-	res.Div(exg.K, res)
-	res.Sub(exg.ReserveB.Amount, res)
-	return res
+	var fiz *uint256.Int = uint256.NewInt(0)
+	var	buz	*uint256.Int = uint256.NewInt(0)
+	buz.Mul(exg.ReserveA.Amount, exg.ReserveB.Amount)	// A0 * B0 = K 
+	fiz.Mul(exg.ReserveB.Amount, amt_in)				// B0 * amt_in
+	fiz.Add(fiz, buz)									// K + (B0 * amt_in)
+	fiz.Sub(fiz, exg.ReserveB.Amount)					// K + (B0 * amt_in) - B0
+	buz.Add(exg.ReserveA.Amount, amt_in)				// A0 + amt_in // !! reusing buz !!
+	return fiz.Div(fiz, buz)							// amt_out
 }
 
 func (exg ConstantProductExchange) SwapBForA(amt_in *uint256.Int) *uint256.Int {
-	var res *uint256.Int = uint256.NewInt(0)
+	var fiz *uint256.Int = uint256.NewInt(0)
+	var	buz	*uint256.Int = uint256.NewInt(0)
 
-	// K = A0 * B0
+	// K0 = A0 * B0
 	// B1 = (B0 + amt_in)
 	// A1 = (A0 - amt_out)
-	// A * B = (B0 + amt_in) (A0 - amt_out)
-	// A * B / (B0 + amt_in) = A0 - amt_out
-	// amt_out = A0 - ((A * B) / (B0 + amt_in))
-	res.Add(amt_in, exg.ReserveB.Amount)
-	exg.K.Mul(exg.ReserveB.Amount, exg.ReserveA.Amount)
-	res.Div(exg.K, res)
-	res.Sub(exg.ReserveA.Amount, res)
-	return res
+	// A0 * B0 = A1 * B1
+	// A0 * B0 / (B0 + amt_in) = A0 - amt_out
+
+	// amt_out = A0 - (A0 * B0 / (B0 + amt_in))
+
+	// --- Above equation is correct-ish, but it leads to loss due to floor div.
+	// --- so we modify it to divide on the last step and minimize output, leaving the
+	// --- floor division to be loss on the swapper, not the exchange
+
+	// amt_out * (B0 + amt_in) = A0 * (B0 + amt_in) - A0
+	// amt_out * (B0 + amt_in) = K  + (A0 * amt_in) - A0
+
+	buz.Mul(exg.ReserveA.Amount, exg.ReserveB.Amount)	// A0 * B0 = K
+	fiz.Mul(exg.ReserveA.Amount, amt_in)				// A0 * amt_in
+	fiz.Add(fiz, buz)									// K + (A0 * amt_in)
+	fiz.Sub(fiz, exg.ReserveA.Amount)					// K + (A0 * amt_in) - A0
+	buz.Add(exg.ReserveB.Amount, amt_in)				// B0 + amt_in	// NOTE: re-using buz
+	return fiz.Div(fiz, buz)							// amt_out
 }
 
 func (cpe *ConstantProductExchange) Merge(feat ConstantProductExchange) {
 	cpe.ReserveA = feat.ReserveA
 	cpe.ReserveB = feat.ReserveB
 	cpe.Auditer = feat.Auditer
-	cpe.K = feat.K
 }
 
 func (cpe ConstantProductExchange) String() string {
-	return fmt.Sprintf("{ reserveA: %v; reserveB: %v, audit: %v, last-k: %v }", cpe.ReserveA, cpe.ReserveB, cpe.Auditer, cpe.K)
+	return fmt.Sprintf("{ reserveA: %v; reserveB: %v, audit: %v}", cpe.ReserveA, cpe.ReserveB, cpe.Auditer)
 }
 
 func (cpe ConstantProductExchange) Clone() ConstantProductExchange {
@@ -114,7 +124,6 @@ func (cpe ConstantProductExchange) Clone() ConstantProductExchange {
 		ReserveA: cpe.ReserveA.Clone(),
 		ReserveB: cpe.ReserveB.Clone(),
 		Auditer: cpe.Auditer.Clone(),
-		K: cpe.K.Clone(),
 	}
 }
 

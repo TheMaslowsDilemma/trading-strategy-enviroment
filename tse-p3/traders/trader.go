@@ -61,6 +61,27 @@ func (t *Trader) SetWallet(sym string, addr ledger.Addr, override bool) ledger.A
 	return addr
 }
 
+func (t *Trader) String(walletProvider ledger.WalletProvider) string {
+	var (
+		fmted	string
+		waddr	ledger.Addr
+		wlt		wallets.Wallet
+		err		error
+	)
+	
+	fmted = "{ "
+	for _, waddr = range t.Wallets {
+		wlt, err = walletProvider(waddr)
+		if err != nil {
+			continue
+		}
+		fmted = fmted + wlt.String()
+	}
+	fmted = fmted + " }"
+	return fmted
+
+}
+
 func (t *Trader) GetNetworth(rateProvider ledger.RateProvider, walletProvider ledger.WalletProvider) float64 {
 	var (
 		waddr		ledger.Addr

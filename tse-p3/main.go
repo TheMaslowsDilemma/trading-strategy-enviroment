@@ -17,12 +17,11 @@ func main() {
 	go (&s).Run()
 
 	
-
 	for _, bot := range s.Bots {
 		fmt.Printf("[%v] networth: %v\n", bot.Name, bot.Trader.GetNetworth(s.GetPrice, s.GetWallet))
 	}
 
-	time.Sleep(120 * time.Second)
+	time.Sleep(15 * time.Second)
 	s.CancelRequested = true
 	
 	fmt.Println(s.String())
@@ -35,9 +34,10 @@ func main() {
 	for _, bot := range s.Bots {
 		var nw = bot.Trader.GetNetworth(s.GetPrice, s.GetWallet)
 		total_nws += nw
-		fmt.Printf("\t[%v] : %v\n", bot.Name, nw)
+		fmt.Printf("\t[%v] : %v : %v \n", bot.Name, bot.Trader.String(s.GetWallet), nw)
 		nws = append(nws, nw)
 	}
+
 	fmt.Printf("total: %v\n", total_nws)
 	fmt.Printf("\t[exchange] : %v\n", s.GetExchange(globals.USDSymbol, globals.TSESymbol))
 }
