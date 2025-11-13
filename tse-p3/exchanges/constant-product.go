@@ -74,12 +74,9 @@ func (exg ConstantProductExchange) SpotPriceB() float64 {
 func (exg ConstantProductExchange) SwapAForB(amt_in *uint256.Int) *uint256.Int {
 	var fiz *uint256.Int = uint256.NewInt(0)
 	var	buz	*uint256.Int = uint256.NewInt(0)
-	buz.Mul(exg.ReserveA.Amount, exg.ReserveB.Amount)	// A0 * B0 = K 
-	fiz.Mul(exg.ReserveB.Amount, amt_in)				// B0 * amt_in
-	fiz.Add(fiz, buz)									// K + (B0 * amt_in)
-	fiz.Sub(fiz, exg.ReserveB.Amount)					// K + (B0 * amt_in) - B0
-	buz.Add(exg.ReserveA.Amount, amt_in)				// A0 + amt_in // !! reusing buz !!
-	return fiz.Div(fiz, buz)							// amt_out
+	fiz.Mul(exg.ReserveB.Amount, amt_in)	// (B0 * amt_in)
+	buz.Add(exg.ReserveA.Amount, amt_in)	// (A0 + amt_in)
+	return fiz.Div(fiz, buz)				// (A0 * amt_in) / (B0 + amt_in)
 }
 
 func (exg ConstantProductExchange) SwapBForA(amt_in *uint256.Int) *uint256.Int {
@@ -90,23 +87,23 @@ func (exg ConstantProductExchange) SwapBForA(amt_in *uint256.Int) *uint256.Int {
 	// B1 = (B0 + amt_in)
 	// A1 = (A0 - amt_out)
 	// A0 * B0 = A1 * B1
-	// A0 * B0 / (B0 + amt_in) = A0 - amt_out
+	// A0 * B0 = (A0 - amt_out) * (B0 + amt_in)
+	// A0 * B0 / (B0 + amt_in) = (A0 - amt_out)
 
-	// amt_out = A0 - (A0 * B0 / (B0 + amt_in))
+	// amt_out = A0 - A0 * B0 / (B0 + amt_in) 
 
-	// --- Above equation is correct-ish, but it leads to loss due to floor div.
-	// --- so we modify it to divide on the last step and minimize output, leaving the
-	// --- floor division to be loss on the swapper, not the exchange
+	/** -- NOTE -- 
+	 * the bove equation is correct-ish, but it leads to loss due to floor div.
+	 * But the integer division means the trader will get more and exchange less
+	**/
 
-	// amt_out * (B0 + amt_in) = A0 * (B0 + amt_in) - A0
-	// amt_out * (B0 + amt_in) = K  + (A0 * amt_in) - A0
+	// amt_out * (B0 + amt_in) = A0 * (B0 + amt_in) - (A0 * B0)
+	// amt_out * (B0 + amt_in) = (A0 * B0) + (A0 * amt_in) - (A0 * B0)
+	// amt_out = (A0 * amt_in) / (B0 + amt_in)
 
-	buz.Mul(exg.ReserveA.Amount, exg.ReserveB.Amount)	// A0 * B0 = K
-	fiz.Mul(exg.ReserveA.Amount, amt_in)				// A0 * amt_in
-	fiz.Add(fiz, buz)									// K + (A0 * amt_in)
-	fiz.Sub(fiz, exg.ReserveA.Amount)					// K + (A0 * amt_in) - A0
-	buz.Add(exg.ReserveB.Amount, amt_in)				// B0 + amt_in	// NOTE: re-using buz
-	return fiz.Div(fiz, buz)							// amt_out
+	fiz.Mul(exg.ReserveA.Amount, amt_in)	// (A0 * amt_in)
+	buz.Add(exg.ReserveB.Amount, amt_in)	// (B0 + amt_in)
+	return fiz.Div(fiz, buz)				// (A0 * amt_in) / (B0 + amt_in)
 }
 
 func (cpe *ConstantProductExchange) Merge(feat ConstantProductExchange) {

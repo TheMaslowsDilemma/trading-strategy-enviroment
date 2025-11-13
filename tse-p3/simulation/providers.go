@@ -39,7 +39,7 @@ func (s *Simulation) GetPrice(symbol, inTermsOf string) (float64, error) {
 		exg		exchanges.ConstantProductExchange
 	)
 
-	if (symbol == inTermsOf) {
+	if symbol == inTermsOf {
 		return 1.0, nil
 	}
 	

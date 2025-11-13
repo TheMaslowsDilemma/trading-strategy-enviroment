@@ -100,7 +100,7 @@ func (t *Trader) GetNetworth(rateProvider ledger.RateProvider, walletProvider le
 			fmt.Printf("trader has invalid wallet: %v\n", waddr)
 			continue
 		}
-		rate, err = rateProvider(wlt.Reserve.Symbol, globals.TSESymbol)
+		rate, err = rateProvider(wlt.Reserve.Symbol, globals.USDSymbol)
 		ratescld = uint256.NewInt(uint64(rate * globals.TokenScaleFactorf64))
 		if err != nil {
 			continue // There is no exchange connected to tse

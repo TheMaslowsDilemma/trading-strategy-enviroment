@@ -68,7 +68,6 @@ func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 			Amount: 0,
 			Symbol: tx.SymbolOut,
 		})
-		tx.Trader.AddWallet(tx.SymbolOut, rcv_wlt_addr)
 	}
 
 	pyr_wlt = ledger_delta.GetWallet(pyr_wlt_addr).Clone()
@@ -104,10 +103,19 @@ func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 
 	price = exg.SpotPriceA()
 	exg.Auditer.Audit(price, tick)
+	
 	// --- Finally Write changes to our delta ledger --- //
 	ledger_delta.Exchanges[tx.ExchangeAddr] = exg
 	ledger_delta.Wallets[rcv_wlt_addr] = rcv_wlt
 	ledger_delta.Wallets[pyr_wlt_addr] = pyr_wlt
 	
+
+	// NOTE we need to change how we add the trader wallet
+	// it needs to be done transactionally... work around by doing
+	// at the end of the transaction
+	if !rcv_wlt_exists {
+		tx.Trader.AddWallet(tx.SymbolOut, rcv_wlt_addr)
+	}
+
 	return ledger_delta, nil
 }
