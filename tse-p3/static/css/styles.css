@@ -1,0 +1,75 @@
+body {
+    background-color: #ffffff;
+    color: #000000;
+    font-family: monospace;
+    margin: 20px;
+}
+
+h1 {
+    text-align: center;
+}
+
+#chart {
+    display: block;
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#chart svg {
+    margin-left: auto;
+    margin-right: auto;
+    background: #ffffff;
+}
+
+#chart .x-axis path,
+#chart .x-axis line,
+#chart .y-axis path,
+#chart .y-axis line {
+    stroke: #000000;
+    stroke-width: 0.5px; /* Thinner axis lines */
+}
+
+#chart text {
+    fill: #000000;
+}
+
+
+#chart .candle-rect {
+    stroke: #000000;
+}
+
+#command-interface {
+    width: 40%;
+    margin-left: auto;
+    margin-right: auto;
+    justify-content: center;
+    align-items: left;
+}
+
+input {
+    background-color: #ffffff;
+    color: #000000;
+    border: 2px solid #000000;
+    font-family: monospace;
+    padding: 10px;
+    width: 80%;
+    outline: none;
+}
+
+button {
+    background-color: #ffffff;
+    color: #000000;
+    border: 2px solid #000000;
+    font-family: monospace;
+    padding: 10px;
+}
+
+pre {
+    border: 1px solid #000000;
+    padding: 10px;
+    overflow: auto;
+    height: 200px;
+    width: 800px;
+    margin: 10px auto;
+}

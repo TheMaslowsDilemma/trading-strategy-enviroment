@@ -10,7 +10,7 @@ import (
 type Bot struct {
 	Name		string
 	PendingTx	bool
-	Id		uint64
+	Id			uint64
 	Strategy	strategies.Strategy
 	Trader		*traders.Trader
 }

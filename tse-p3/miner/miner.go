@@ -1,7 +1,7 @@
 package miner
 
 import (
-	"fmt"
+	//"fmt"
 	"tse-p3/ledger"
 	"tse-p3/globals"
 	"tse-p3/transactions"
@@ -41,7 +41,7 @@ func NextBlock(tick uint64, mpl *memorypool.MemoryPool, scnd *ledger.Ledger) (ui
 	for _, tx = range txblock {
 		delta, err = tx.Apply(tick, *scnd)
 		if err != nil {
-			fmt.Printf("Error applying tx: %v\n", err)
+			//fmt.Printf("Error applying tx: %v\n", err)
 			tx.Notify(txs.TxFail)
 			continue
 		}

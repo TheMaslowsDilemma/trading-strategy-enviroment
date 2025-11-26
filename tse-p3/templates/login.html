@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+
+<div class="container">
+    <h1>{{.Title}}</h1>
+
+    {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+    {{if .Success}}<p class="success">{{.Success}}</p>{{end}}
+
+    <form method="POST">
+        <input type="text" name="username" placeholder="username" autocomplete="username" required autofocus>
+        <input type="password" name="password" placeholder="password" autocomplete="current-password" required>
+        <button type="submit">{{.Title}}</button>
+    </form>
+
+    <p class="text-center mt-4">
+        {{if eq .Title "Login"}}
+            <a href="/register">No account? Register</a>
+        {{else}}
+            <a href="/login">Already have an account? Login</a>
+        {{end}}
+    </p>
+</div>
+
+</body>
+</html>

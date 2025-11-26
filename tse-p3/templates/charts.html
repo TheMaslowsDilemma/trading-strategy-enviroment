@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Simulation</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="/static/js/svgcandles.js" defer></script>
+    <style>
+        .controls { padding: 10px; background: #f5f5f5; margin-bottom: 10px; }
+        .search-box { margin-bottom: 10px; }
+        input { padding: 8px; width: 300px; font-size: 16px; }
+        button { padding: 8px 12px; margin-left: 5px; }
+        .subscriptions { margin-top: 10px; }
+        .sub-item {
+            display: inline-block;
+            background: #e0e0e0;
+            padding: 6px 10px;
+            margin: 4px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .sub-item button {
+            margin-left: 8px;
+            background: #ef5350;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Trading Simulation</h1>
+        <p>User: <strong>{{.Username}}</strong></p>
+        <a href="/logout" class="logout-link">Logout</a>
+    </div>
+
+    <div class="controls">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search symbols, pairs, wallets... (e.g. BTC, USD, BTC/USD)">
+            <button id="searchBtn">Search</button>
+        </div>
+
+        <div id="searchResults"></div>
+
+        <div class="subscriptions">
+            <strong>Subscribed:</strong>
+            <span id="subList">None</span>
+        </div>
+    </div>
+
+    <div class="chart-box">
+        <svg id="chart"></svg>
+    </div>
+
+</body>
+</html>

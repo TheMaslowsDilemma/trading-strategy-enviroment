@@ -7,100 +7,135 @@ import (
 	"tse-p3/globals"
 )
 
+
 type Ledger struct {
 	Wallets		map[Addr]wallets.Wallet
 	Exchanges	map[Addr]exchanges.ConstantProductExchange
+	EmitManager	*EmitterManager
 }
 
-func (l Ledger) String() string {
-	var (
-		wc	uint
-		ec	uint
-	)
-
-	wc = 0
-	ec = 0
-
-	for _, _ = range l.Wallets {
-		wc += 1
-	}
-	for _, _ = range l.Exchanges {
-		ec += 1
-	}
-	return fmt.Sprintf("{ wallet-count: %v, exchange-count: %v }", wc, ec)
+func (l *Ledger) String() string {
+	return fmt.Sprintf("{wallets: %d, exchanges: %d}", len(l.Wallets), len(l.Exchanges))
 }
 
-func CreateLedger() Ledger {
-	return Ledger {
-		Wallets: make(map[Addr]wallets.Wallet),
-		Exchanges: make(map[Addr]exchanges.ConstantProductExchange),
+// Constructors
+func NewLedger() *Ledger {
+	return &Ledger{
+		Wallets:	make(map[Addr]wallets.Wallet),
+		Exchanges:	make(map[Addr]exchanges.ConstantProductExchange),
 	}
 }
 
-func RandomAddr() Addr {
-	return Addr(globals.Rand64())
+func NewLedgerWithEmitter() *Ledger {
+	return &Ledger{
+		Wallets:		make(map[Addr]wallets.Wallet),
+		Exchanges:		make(map[Addr]exchanges.ConstantProductExchange),
+		EmitManager:	NewEmitterManager(),
+	}
 }
 
-func (l *Ledger) AddConstantProductExchange(cd exchanges.CpeDescriptor, tick uint64) Addr {
-	var (
-		addr	Addr
-		cpe		exchanges.ConstantProductExchange
-	)
+// -------------------helpers--------------------------
 
-	addr = RandomAddr()
-	cpe = exchanges.CreateConstantProductExchange(cd, tick)
+func (l *Ledger) AddWallet(name string, wd wallets.WalletDescriptor) Addr {
+	addr := globals.Rand64()
+	wallet := wallets.CreateWallet(wd)
+	l.Wallets[addr] = wallet
+
+	if l.EmitManager != nil {
+		l.EmitManager.AddSource(name, addr, EntityWallet)
+	}
+	return addr
+}
+
+func (l *Ledger) AddConstantProductExchange(name string, cd exchanges.CpeDescriptor, tick uint64) Addr {
+	addr := globals.Rand64()
+	cpe := exchanges.CreateConstantProductExchange(cd, tick)
 	l.Exchanges[addr] = cpe
+
+	if l.EmitManager != nil {
+		l.EmitManager.AddSource(name, addr, EntityExchange)
+	}
 	return addr
 }
 
-func (l *Ledger) AddWallet(wd wallets.WalletDescriptor) Addr {
-	var (
-		addr Addr
-		wlt  wallets.Wallet
-	)
-	
-	addr = RandomAddr()
-	wlt  = wallets.CreateWallet(wd)
-	l.Wallets[addr] = wlt
-	return addr
+func (l *Ledger) SearchSources(name string) []SearchResult {
+	if l.EmitManager != nil {
+		return l.EmitManager.SearchSources(name)
+	}
+	return []SearchResult{}
 }
 
-func (l Ledger) GetWallet(addr Addr) wallets.Wallet {
-	return l.Wallets[addr]
+func (l *Ledger) GetWallet(addr Addr) (wallets.Wallet, bool) {
+	w, ok := l.Wallets[addr]
+	return w, ok
 }
 
-func (l Ledger) GetExchange(addr Addr) exchanges.ConstantProductExchange {
-	return l.Exchanges[addr]
+func (l *Ledger) GetExchange(addr Addr) (exchanges.ConstantProductExchange, bool) {
+	e, ok := l.Exchanges[addr]
+	return e, ok
 }
 
-// NOTE this is really pseudo merge, it should eventually support deletes
-func (l *Ledger) Merge(feat Ledger) uint {
-	var (
-		featwlt wallets.Wallet
-		featexg exchanges.ConstantProductExchange
-		cc		uint
-		addr	Addr
-		hash	uint64
-	)
-	// change count = 0
-	cc = 0
+func (l *Ledger) Merge(delta Ledger) {
+	for addr, w := range delta.Wallets {
+		if current, exists := l.Wallets[addr]; !exists || current.Hash() != w.Hash() {
+			l.Wallets[addr] = w
+		}
+	}
+	for addr, e := range delta.Exchanges {
+		if current, exists := l.Exchanges[addr]; !exists || current.Hash() != e.Hash() {
+			l.Exchanges[addr] = e
+		}
+	}
+}
 
-	// merge wallet subledger - NOTE we do not do any deletes
-	for addr, featwlt = range feat.Wallets {
-		hash = l.Wallets[addr].Hash()
-		if hash != featwlt.Hash() {
-			l.Wallets[addr] = featwlt
-			cc += 1
+func (l *Ledger) MergeAndEmit(delta Ledger) {
+	if l.EmitManager == nil {
+		l.Merge(delta) // fallback to non emitter merge
+		return
+	}
+
+	// --- Wallets ---
+	for addr, newWallet := range delta.Wallets {
+		oldWallet, exists := l.Wallets[addr]
+
+		if !exists || oldWallet.Hash() != newWallet.Hash() {
+			// Update state
+			l.Wallets[addr] = newWallet
+
+			// Emit change
+			dsrc := l.EmitManager.AddSource(addr, EntityWallet) // ensures source exists
+			dsrc.Emit(map[string]any{
+				"name": dsrc.Name,
+				"address": addr,
+				"balance": newWallet.Reserve.Amount.String(),
+				"token":   newWallet.Reserve.Token.Symbol,
+			}, EntityWallet)
 		}
 	}
 
-	// merge exchange subledger
-	for addr, featexg = range feat.Exchanges {
-		hash = l.Exchanges[addr].Hash()
-		if hash != featexg.Hash() {
-			l.Exchanges[addr] = featexg
-			cc += 1
+	// --- Exchanges ---
+	for addr, newEx := range delta.Exchanges {
+		oldEx, exists := l.Exchanges[addr]
+
+		if !exists || oldEx.Hash() != newEx.Hash() {
+			// Update state
+			l.Exchanges[addr] = newEx
+
+			// Emit spot price of token A (or both if you prefer)
+			priceA := newEx.SpotPriceA()
+			priceB := newEx.SpotPriceB()
+
+			dsrc := l.EmitManager.AddSource(addr, EntityExchange)
+			dsrc.Emit(map[string]any{
+				"name":		dsrc.Name,
+				"address":  addr,
+				"priceA":   priceA.String(),
+				"priceB":   priceB.String(),
+				"reserveA": newEx.ReserveA.Amount.String(),
+				"reserveB": newEx.ReserveB.Amount.String(),
+				"tokenA":   newEx.ReserveA.Symbol,
+				"tokenB":   newEx.ReserveB.Symbol,
+			}, EntityExchange)
 		}
 	}
-	return cc
 }

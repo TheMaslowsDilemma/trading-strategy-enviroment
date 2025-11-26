@@ -31,15 +31,15 @@ func (s SimpleStrategy) Decide(cs []candles.Candle) (Action, float64) {
 	ls = linearRegressionSlope(cs, i - s.LongInterval, i - s.ShortInterval)
 	if ss >= 0 {
 		if ls >= 0 {
-			return Buy, Sigmoid(ss + ls) * 0.5
+			return Buy, Sigmoid(ss + ls)
 		} else {
-			return Sell, Sigmoid(ss) * 0.5
+			return Sell, Sigmoid(ss)
 		}
 	} else {
 		if ls >= 0 {
 			return Hold, 1
 		} else {
-			return Sell, Sigmoid(math.Abs(ss)) * 0.5
+			return Sell, Sigmoid(math.Abs(ss))
 		}
 	}
 

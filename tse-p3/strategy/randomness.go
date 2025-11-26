@@ -9,7 +9,7 @@ type RandomStrategy struct { }
 
 func (rs RandomStrategy) Decide(cs []candles.Candle) (Action, float64) {
 	var act float64 = rand.Float64()
-	var cnf float64 = rand.Float64() * 0.1
+	var cnf float64 = rand.Float64()
 
 	if act > 0.66 {
 		return Buy, cnf

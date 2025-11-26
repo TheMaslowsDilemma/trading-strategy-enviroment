@@ -23,6 +23,7 @@ type ConstantProductExchange struct {
 }
 
 type CpeDescriptor struct {
+	Name	string
 	AmountA	uint64
 	AmountB uint64
 	SymbolA string

@@ -94,8 +94,6 @@ func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (ledger.Ledger, error) {
 		exg.ReserveA.Amount.Sub(exg.ReserveA.Amount, amt_out)
 		exg.ReserveB.Amount.Add(exg.ReserveB.Amount, tx.AmountIn)
 	}
-
-	fmt.Printf("\t%v %v ==> %v %v\n", tx.AmountIn, tx.SymbolIn, amt_out, tx.SymbolOut)
 	
 	// Update the Traders Wallets
 	pyr_wlt.Reserve.Amount.Sub(pyr_wlt.Reserve.Amount, tx.AmountIn)

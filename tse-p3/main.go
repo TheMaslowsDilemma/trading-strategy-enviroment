@@ -4,39 +4,19 @@ import (
 	"fmt"
 	"time"
 	"tse-p3/simulation"
+	"tse-p3/website"
 	"tse-p3/globals"
 )
 
 
 
 func main() {
+
 	fmt.Println("--- Trading Stategy Environment: Part Three ---")
 	
 	s := simulation.NewSimulation()
+    website.Initialize(&s)
 	(&s).InitializeTraders()
 	go (&s).Run()
-
-	
-	for _, bot := range s.Bots {
-		fmt.Printf("[%v] networth: %v\n", bot.Name, bot.Trader.GetNetworth(s.GetPrice, s.GetWallet))
-	}
-
-	time.Sleep(60 * time.Second)
-	s.CancelRequested = true
-	
-	fmt.Println(s.String())
-
-	fmt.Println("\n--- Simulation Results ---")
-	
-	nws := make([]float64, 0)
-	var total_nws float64 = 0.0
-
-	for _, bot := range s.Bots {
-		var nw = bot.Trader.GetNetworth(s.GetPrice, s.GetWallet)
-		total_nws += nw
-		fmt.Printf("\t[%v] networth: %v \n", bot.Name, nw)
-		nws = append(nws, nw)
-	}
-
-	fmt.Printf("\t[exchange] : %v\n", s.GetExchange(globals.USDSymbol, globals.TSESymbol))
+	website.Begin(":8080")
 }

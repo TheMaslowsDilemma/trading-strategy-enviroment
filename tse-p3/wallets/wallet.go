@@ -11,8 +11,9 @@ type Wallet struct {
 }
 
 type WalletDescriptor struct {
-	Amount uint64
-	Symbol string
+	Name	string
+	Amount	uint64
+	Symbol	string
 }
 
 func CreateWallet(wd WalletDescriptor) Wallet {
