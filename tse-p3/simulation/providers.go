@@ -17,11 +17,9 @@ func (s *Simulation) placeTx(tx txs.Tx) bool {
 	return s.MemoryPool.Push(tx)
 }
 
-
-
 // --- Data Subscriber Logic --- //
-func (s *Simulation) AddDataSubscriber(name string, addr Addr, etype EntityType, userID uint64, conn *websocket.Conn) {
-	s.PrimaryLedger.EmitManager.AddSubscriber(name, etype, userID, addr, conn)
+func (s *Simulation) AddDataSubscriber(name string, addr ledger.Addr, etype ledger.EntityType, userID uint64, conn *websocket.Conn) {
+	s.PrimaryLedger.EmitManager.AddSubscriber(name, addr, etype, userID, conn)
 }
 
 func (s *Simulation) RemoveDataSubscriber(addr ledger.Addr, etype ledger.EntityType, userID uint64) {

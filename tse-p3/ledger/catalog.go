@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"fmt"
+	"strconv"
 )
 
 type data_catalog struct {
@@ -51,9 +52,9 @@ func (dc *data_catalog) AddSource(ds *data_source) {
 
 // -------------- Search Functionality --------------- //
 type SearchResult struct {
-	Name	string
-	Addr	Addr
-	Etype	EntityType
+	Name	string		`json:"name"`
+	Addr	string		`json:"address"`
+	Etype	EntityType	`json:"entity_type"`
 }
 
 func (dc *data_catalog) SearchK(term string) []SearchResult {
@@ -101,7 +102,7 @@ func (dc *data_catalog) SearchK(term string) []SearchResult {
 		}
 		result[i] = SearchResult{
 			Name: search_pop.Dsrc.Name,
-			Addr: search_pop.Dsrc.Addr,
+			Addr: strconv.FormatUint(uint64(search_pop.Dsrc.Addr), 10),
 			Etype: search_pop.Dsrc.Etype,
 		}
 	}

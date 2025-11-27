@@ -11,12 +11,14 @@ import (
 
 type Trader struct {
 	Id			uint64
+	Name		string
 	Wallets		map[uint64] ledger.Addr
 }
 
-func CreateTrader() *Trader {
+func CreateTrader(name string) *Trader {
 	return &Trader {
 		Id: globals.Rand64(),
+		Name: name,
 		Wallets: make(map[uint64] ledger.Addr),
 	}
 }

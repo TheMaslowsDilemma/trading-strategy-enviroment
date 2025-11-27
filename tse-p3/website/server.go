@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+
 	"tse-p3/website/handlers"
 	"tse-p3/simulation"
 )
@@ -12,7 +13,7 @@ import (
 func Initialize(sim *simulation.Simulation) {
 	templates = template.Must(template.ParseGlob("templates/*.html"))
 
-	handlers.Initialize(simulation)
+	handlers.Initialize(sim)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		var (
@@ -52,7 +53,7 @@ func Initialize(sim *simulation.Simulation) {
 
 	// === Protected routes (require login) ===
 	http.HandleFunc("/", authMiddleware(handlers.ChartsHandler))
-	http.HandleFunc("/ws", authMiddleware(websocketHandler))
+	http.HandleFunc("/ws", authMiddleware(handlers.WebsocketHandler))
 }
 
 func Begin(addr string) {

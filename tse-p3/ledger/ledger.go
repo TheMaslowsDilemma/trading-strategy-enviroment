@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"fmt"
+	"strconv"
 	"tse-p3/exchanges"
 	"tse-p3/wallets"
 	"tse-p3/globals"
@@ -26,6 +27,17 @@ func NewLedger() *Ledger {
 	}
 }
 
+func Clone(to_clone Ledger) *Ledger {
+	var clone *Ledger = NewLedger()
+	for addr, w := range to_clone.Wallets {
+		clone.Wallets[addr] = w
+	}
+	for addr, e := range to_clone.Exchanges {
+			clone.Exchanges[addr] = e
+	}
+	return clone
+}
+
 func NewLedgerWithEmitter() *Ledger {
 	return &Ledger{
 		Wallets:		make(map[Addr]wallets.Wallet),
@@ -36,24 +48,28 @@ func NewLedgerWithEmitter() *Ledger {
 
 // -------------------helpers--------------------------
 
-func (l *Ledger) AddWallet(name string, wd wallets.WalletDescriptor) Addr {
-	addr := globals.Rand64()
+func (l *Ledger) AddWallet(wd wallets.WalletDescriptor) Addr {
+	addr := Addr(globals.Rand64())
 	wallet := wallets.CreateWallet(wd)
 	l.Wallets[addr] = wallet
 
 	if l.EmitManager != nil {
-		l.EmitManager.AddSource(name, addr, EntityWallet)
+		l.EmitManager.AddSource(wallet.Name, addr, Wallet_t)
 	}
 	return addr
 }
 
-func (l *Ledger) AddConstantProductExchange(name string, cd exchanges.CpeDescriptor, tick uint64) Addr {
-	addr := globals.Rand64()
+func (l *Ledger) AddConstantProductExchange(cd exchanges.CpeDescriptor, tick uint64) Addr {
+	addr := Addr(globals.Rand64())
 	cpe := exchanges.CreateConstantProductExchange(cd, tick)
+	name := fmt.Sprintf("%v <=> %v",
+		cpe.ReserveA.Symbol,
+		cpe.ReserveB.Symbol,
+	)
 	l.Exchanges[addr] = cpe
 
 	if l.EmitManager != nil {
-		l.EmitManager.AddSource(name, addr, EntityExchange)
+		l.EmitManager.AddSource(name, addr, Exchange_t)
 	}
 	return addr
 }
@@ -65,17 +81,15 @@ func (l *Ledger) SearchSources(name string) []SearchResult {
 	return []SearchResult{}
 }
 
-func (l *Ledger) GetWallet(addr Addr) (wallets.Wallet, bool) {
-	w, ok := l.Wallets[addr]
-	return w, ok
+func (l *Ledger) GetWallet(addr Addr) wallets.Wallet {
+	return l.Wallets[addr]
 }
 
-func (l *Ledger) GetExchange(addr Addr) (exchanges.ConstantProductExchange, bool) {
-	e, ok := l.Exchanges[addr]
-	return e, ok
+func (l *Ledger) GetExchange(addr Addr) exchanges.ConstantProductExchange {
+	return l.Exchanges[addr]
 }
 
-func (l *Ledger) Merge(delta Ledger) {
+func (l *Ledger) Merge(delta *Ledger) {
 	for addr, w := range delta.Wallets {
 		if current, exists := l.Wallets[addr]; !exists || current.Hash() != w.Hash() {
 			l.Wallets[addr] = w
@@ -88,7 +102,7 @@ func (l *Ledger) Merge(delta Ledger) {
 	}
 }
 
-func (l *Ledger) MergeAndEmit(delta Ledger) {
+func (l *Ledger) MergeAndEmit(tick uint64, delta *Ledger) {
 	if l.EmitManager == nil {
 		l.Merge(delta) // fallback to non emitter merge
 		return
@@ -96,6 +110,7 @@ func (l *Ledger) MergeAndEmit(delta Ledger) {
 
 	// --- Wallets ---
 	for addr, newWallet := range delta.Wallets {
+
 		oldWallet, exists := l.Wallets[addr]
 
 		if !exists || oldWallet.Hash() != newWallet.Hash() {
@@ -103,39 +118,41 @@ func (l *Ledger) MergeAndEmit(delta Ledger) {
 			l.Wallets[addr] = newWallet
 
 			// Emit change
-			dsrc := l.EmitManager.AddSource(addr, EntityWallet) // ensures source exists
-			dsrc.Emit(map[string]any{
-				"name": dsrc.Name,
-				"address": addr,
-				"balance": newWallet.Reserve.Amount.String(),
-				"token":   newWallet.Reserve.Token.Symbol,
-			}, EntityWallet)
+			dsrc := l.EmitManager.AddSource(newWallet.Name, addr, Wallet_t) // ensures source exists
+			dsrc.Emit(tick,
+				map[string]any{
+					"name": dsrc.Name,
+					"address": strconv.FormatUint(uint64(addr), 10),
+					"balance": newWallet.Reserve.Amount.String(),
+					"symbol":   newWallet.Reserve.Symbol,
+				},Wallet_t)
 		}
 	}
 
 	// --- Exchanges ---
 	for addr, newEx := range delta.Exchanges {
-		oldEx, exists := l.Exchanges[addr]
 
-		if !exists || oldEx.Hash() != newEx.Hash() {
-			// Update state
-			l.Exchanges[addr] = newEx
+		// Update state
+		l.Exchanges[addr] = newEx
 
-			// Emit spot price of token A (or both if you prefer)
-			priceA := newEx.SpotPriceA()
-			priceB := newEx.SpotPriceB()
+		// Emit candles 
+		dsrc := l.EmitManager.AddSource(
+			fmt.Sprintf(
+				"%v <=> %v",
+				newEx.ReserveA.Symbol,
+				newEx.ReserveB.Symbol,
+			),
+			addr,
+			Exchange_t,
+		)
+		dsrc.Emit(tick, map[string]any{
+			"address":	 strconv.FormatUint(uint64(addr), 10),
+			"candles":	newEx.Auditer.GetCandles(),
+			"reserveA":	newEx.ReserveA.Amount.String(),
+			"reserveB":	newEx.ReserveB.Amount.String(),
+			"tokenA":	newEx.ReserveA.Symbol,
+			"tokenB":	newEx.ReserveB.Symbol,
+		}, Exchange_t)
 
-			dsrc := l.EmitManager.AddSource(addr, EntityExchange)
-			dsrc.Emit(map[string]any{
-				"name":		dsrc.Name,
-				"address":  addr,
-				"priceA":   priceA.String(),
-				"priceB":   priceB.String(),
-				"reserveA": newEx.ReserveA.Amount.String(),
-				"reserveB": newEx.ReserveB.Amount.String(),
-				"tokenA":   newEx.ReserveA.Symbol,
-				"tokenB":   newEx.ReserveB.Symbol,
-			}, EntityExchange)
-		}
 	}
 }

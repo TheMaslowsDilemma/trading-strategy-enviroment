@@ -47,6 +47,11 @@ h1 {
     align-items: left;
 }
 
+.search-container {
+    align-items: left;
+    padding: 10px;
+}
+
 input {
     background-color: #ffffff;
     color: #000000;

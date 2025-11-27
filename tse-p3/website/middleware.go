@@ -2,12 +2,10 @@ package website
 
 import (
 	"context"
-	"fmt"
 	"html/template"
 	"net/http"
 
 	"tse-p3/users"
-	"tse-p3/website/handlers"
 	"tse-p3/website/sessions"
 )
 
@@ -41,9 +39,7 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		ctx = context.WithValue(ctx, "user.id", usr.Id)
-		ctx = context.WithValue(ctx, "user.name", usr.Name)
-		ctx = context.WithValue(ctx, "user.trader.id", usr.TraderId)
+		ctx = context.WithValue(ctx, "user", usr)
 
 		next(w, r.WithContext(ctx))
 	}

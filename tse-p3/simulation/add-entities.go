@@ -1,7 +1,6 @@
 package simulation
 
 import (
-	"fmt"
 	"tse-p3/bots"
 	"tse-p3/ledger"
 	"tse-p3/traders"
@@ -9,8 +8,6 @@ import (
 	"tse-p3/globals"
 	"tse-p3/strategy"
 	"tse-p3/exchanges"
-	"tse-p3/transactions"
-	"github.com/holiman/uint256"
 )
 
 func (s *Simulation) AddBot(name string, strat strategies.Strategy) uint64 {
@@ -21,7 +18,7 @@ func (s *Simulation) AddBot(name string, strat strategies.Strategy) uint64 {
 		waddr	ledger.Addr
 	)
 
-	trdr = traders.CreateTrader()
+	trdr = traders.CreateTrader(bot.Name)
 	wd = wallets.WalletDescriptor {
 		Amount: globals.UserStartingBalance,
 		Symbol: globals.USDSymbol,
@@ -46,12 +43,11 @@ func (s *Simulation) AddTrader(t *traders.Trader) {
 	s.Traders[t.Id] = t
 }
 
-func (s *Simulation) AddWallet(wd wallets.WalletDescriptor, name string) ledger.Addr {
+func (s *Simulation) AddWallet(wd wallets.WalletDescriptor) ledger.Addr {
 	var waddr ledger.Addr
 	s.SecondaryLock.Lock()
-	waddr = (&s.SecondaryLedger).AddWallet(wd) // NOTE: we add to back ledger because! CAUTION multiple writes
+	waddr = s.SecondaryLedger.AddWallet(wd) // NOTE: we add to back ledger because! CAUTION multiple writes
 	s.SecondaryLock.Unlock()
-	s.PrimaryLedger.EmitManager.AddSource(name, waddr, ledger.Wallet_t)
 	return waddr
 }
 
@@ -72,6 +68,4 @@ func (s *Simulation) AddExchange(cd exchanges.CpeDescriptor, tick uint64) {
 	// --backward direction--
 	exgkey = globals.GetExchangeKey(cd.SymbolB, cd.SymbolA)
 	s.ExchangeDirectory[exgkey] = eaddr
-
-	s.PrimaryLedger.EmitManager.AddSource(fmt.Sprintf("%v <=> %v", cd.SymbolA, cd.SymbolB), eaddr, ledger.Exchange_t)
 }

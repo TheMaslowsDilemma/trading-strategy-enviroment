@@ -9,14 +9,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const subList = document.getElementById('subList');
 
     // --- State ---
-    const priceHistory = new Map(); // key: addr_etype → [{Ts, Open, High, Low, Close}]
-    const subscriptions = new Set(); // "addr_etype" strings
+    const exchange_prices = new Map(); // key: addr → [{Ts, Open, High, Low, Close}]
+    const exchange_subscriptions = new Set();// "addr_etype" strings
+    const wallet_amounts = new Map(); // key: addr -> [{Amount, Symbol}]
+    const wallet_subscriptions = new Set();// "addr_etype" strings
 
-    // --- SVG Candle Rendering (your original code, slightly refactored) ---
+    // --- SVG Candle Rendering ---
     const getChartContext = function (candles) {
         const maxVisible = 50;
-        const chartWidth = chart.clientWidth || 800;
-        const chartHeight = chart.clientHeight || 500;
+        const chart_width = chart.clientWidth || 800;
+        const chart_height = chart.clientHeight || 500;
         const padding = 30;
 
         if (candles.length === 0) return { in_view: [], ctx: null };
@@ -40,37 +42,38 @@ document.addEventListener('DOMContentLoaded', function () {
 
         return {
             in_view,
-            ctx: { time_min, time_max, price_min, price_max, chartWidth, chartHeight, padding }
+            ctx: { time_min, time_max, price_min, price_max, chart_width, chart_height, padding }
         };
     };
 
     const addCandle = function (c, ctx, i, total) {
-        const { chartWidth, chartHeight, padding, price_min, price_max } = ctx;
-        const usableW = chartWidth - 2 * padding;
-        const usableH = chartHeight - 2 * padding;
+        const { chart_width, chart_height, padding, price_min, price_max } = ctx;
+        const usable_width = chart_width - 2 * padding;
+        const usable_height = chart_weight - 2 * padding;
 
-        const candleW = usableW / total * 0.8;
-        const gap = usableW / total * 0.2;
-        const x = padding + i * (candleW + gap);
+        const candle_width = usable_width / total * 0.8;
+        const candle_x = padding + i * (candle_width + gap);
+        const gap = usable_height / total * 0.2;
 
-        const y = p => chartHeight - padding - ((p - price_min) / (price_max - price_min)) * usableH;
-
-        const yHigh = y(c.High), yLow = y(c.Low);
-        const yOpen = y(c.Open), yClose = y(c.Close);
-        const bodyTop = Math.min(yOpen, yClose);
-        const bodyHeight = Math.max(Math.abs(yClose - yOpen), 1);
+        const y = p => chart_height - padding - ((p - price_min) / (price_max - price_min)) * usable_height;
 
         // Wick
         const wick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        wick.setAttribute('x1', x + candleW/2); wick.setAttribute('y1', yHigh);
-        wick.setAttribute('x2', x + candleW/2); wick.setAttribute('y2', yLow);
+        const wick_x = candle_x + candle_width / 2
+        const wick_top = y(c.High), wick_btm = y(c.Low);
+        wick.setAttribute('x1', wick_x);
+        wick.setAttribute('y1', wick_top);
+        wick.setAttribute('x2', wick_x);
+        wick.setAttribute('y2', wick_btm);
         wick.setAttribute('stroke', '#333'); wick.setAttribute('stroke-width', 1);
         chart.appendChild(wick);
 
         // Body
+        const body_top = y(Math.min(c.Open, c.Close));
+        const body_height = Math.max(y(Math.abs(c.Close - c.Open)), 1);
         const body = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        body.setAttribute('x', x); body.setAttribute('y', bodyTop);
-        body.setAttribute('width', candleW); body.setAttribute('height', bodyHeight);
+        body.setAttribute('x', x); body.setAttribute('y', body_top);
+        body.setAttribute('width', candle_width); body.setAttribute('height', candle_height);
         body.setAttribute('fill', c.Close >= c.Open ? '#26a69a' : '#ef5350');
         body.setAttribute('stroke', '#000'); body.setAttribute('stroke-width', 0.5);
         chart.appendChild(body);
@@ -100,22 +103,25 @@ document.addEventListener('DOMContentLoaded', function () {
     ws.onmessage = (event) => {
         const msg = JSON.parse(event.data);
 
-        // Single price update from your Ledger.Emit
-        if (msg.address && msg.priceA !== undefined) {
-            const key = `${msg.address}_${msg.type || 2}`; // EntityExchange = 2
-            if (!subscriptions.has(key)) return;
+        // Handle Exchange Price Emissions
+        if (msg.type != undefined && mst.type == 2) {
+            if (!exchange_subscriptions.has(msg.address)) {
+                // tell server to stop sending us this data
+                ws.send(JSON.stringify({
+                        type: "unsubscribe",
+                        data: { addr: msg.address, etype: src.etype }
+                }));
+            }
 
-            let series = priceHistory.get(key);
+            let series = exchange_prices.get(msg.address);
             if (!series) {
                 series = [];
-                priceHistory.set(key, series);
+                exchange_prices.set(msg.address, series);
             }
 
             const now = Date.now();
-            const price = parseFloat(msg.priceA) || parseFloat(msg.priceB) || 0;
-
-            // Build or update current candle (1-minute buckets)
-            const minute = Math.floor(now / 60000) * 60000;
+            const price = parseFloat(msg.priceA)
+            const minute = Math.floor(now / 30000) * 30000;
             let current = series[series.length - 1];
 
             if (!current || current.Ts !== minute) {
@@ -188,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // --- Update subscription UI ---
-    const updateSubList = () => {
+    const updateList = () => {
         if (subscriptions.size === 0) {
             subList.innerHTML = "None";
             return;

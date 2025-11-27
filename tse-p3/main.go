@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
-	"time"
 	"tse-p3/simulation"
 	"tse-p3/website"
-	"tse-p3/globals"
+	"tse-p3/db"
 )
 
 
@@ -13,7 +12,7 @@ import (
 func main() {
 
 	fmt.Println("--- Trading Stategy Environment: Part Three ---")
-	
+	db.Init()
 	s := simulation.NewSimulation()
     website.Initialize(&s)
 	(&s).InitializeTraders()

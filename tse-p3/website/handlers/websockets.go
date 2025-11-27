@@ -1,13 +1,13 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
+	"strconv"
+	"context"
 	"net/http"
+	"encoding/json"
 
-	"tse-p3/globals"
 	"tse-p3/ledger"
-	"tse-p3/simulation"
 	"tse-p3/users"
 
 	"github.com/gorilla/websocket"
@@ -24,13 +24,13 @@ var (
 // Command structures
 type SubscribeCmd struct {
 	Name  string            `json:"name"`
-	Etype ledger.EntityType `json:"etype"`
-	Addr  ledger.Addr       `json:"addr"`
+	Etype ledger.EntityType `json:"entity_type"`
+	Addr  string 			`json:"address"`
 }
 
 type UnsubscribeCmd struct {
-	Etype ledger.EntityType `json:"etype"`
-	Addr  ledger.Addr       `json:"addr"`
+	Etype ledger.EntityType `json:"entity_type"`
+	Addr  ledger.Addr       `json:"address"`
 }
 
 type SearchCmd struct {
@@ -50,19 +50,15 @@ type CommandMessage struct {
 
 func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	var (
-		conn     *websocket.Conn
-		err      error
-		ctx      context.Context
-		user     users.User
-		userOK   bool
-		userVal  interface{}
-		nameVal  interface{}
-		subsVal  interface{}
-		name     string
-		subs     []users.DataSubscription
-		msgType  int
-		message  []byte
-		cmd      CommandMessage
+		conn		*websocket.Conn
+		ctx			context.Context
+		user		users.User
+		userOK		bool
+		msgType		int
+		message		[]byte
+		cmd			CommandMessage
+		value		interface{}
+		err			error
 	)
 
 	// 1. Upgrade connection
@@ -73,48 +69,31 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	// 2. Extract user from context (set by auth middleware or login/register)
+	// 2. Extract user id from context
 	ctx = r.Context()
-	userVal = ctx.Value("user")
-	if userVal != nil {
-		user, userOK = userVal.(users.User)
-	}
-	if !userOK || user.ID == 0 {
-		conn.WriteJSON(map[string]string{"error": "unauthenticated"})
+	value = ctx.Value("user")
+	if value != nil {
+		user, userOK = value.(users.User)
+		if !userOK {
+			fmt.Println("user value could not parse")
+			conn.WriteJSON(map[string]string{"error": "unauthenticated"})
+			return
+		}
+	} else {
+		conn.WriteJSON(map[string]string{"error": "no user found"})
 		return
 	}
 
-	// Optional: also read from context keys if you only stored name + subs
-	if nameVal = ctx.Value("user.name"); nameVal != nil {
-		name, _ = nameVal.(string)
-	}
-	if subsVal = ctx.Value("user.subscriptions"); subsVal != nil {
-		subs, _ = subsVal.([]users.DataSubscription)
-	}
-	if name == "" {
-		name = user.Name
-	}
-	if subs == nil {
-		subs = user.DataSubscriptions
-	}
+	fmt.Println("websocket added subscriptions")
 
-	// 3. Re-subscribe to all saved data subscriptions on connect
-	for _, sub := range subs {
-		MainSimulation.AddDataSubscriber(
-			sub.Name,
-			sub.Addr,
-			sub.Etype,
-			user.TraderID,
-			conn,
-		)
-	}
-
-	// Send initial welcome / candle dump if you want
+	// -- initialize user data
 	_ = conn.WriteJSON(map[string]interface{}{
-		"src":  "server",
-		"type": "welcome",
-		"data": map[string]string{"message": "connected as " + name},
+		"type": "initialize",
+		"data": user,
 	})
+
+	fmt.Println("websocket wrote welcome")
+
 
 	// 4. Main message loop
 	for {
@@ -137,25 +116,23 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
 		switch cmd.Type {
 		case "subscribe":
+			fmt.Println("got subscribe request!")
 			var sub SubscribeCmd
 			if json.Unmarshal(cmd.Data, &sub); sub.Name == "" {
 				continue
 			}
+			addr64, err := strconv.ParseUint(sub.Addr, 10, 64)
+			if err != nil {
+				continue
+			}
+
 			MainSimulation.AddDataSubscriber(
 				sub.Name,
-				sub.Addr,
+				ledger.Addr(addr64),
 				sub.Etype,
 				user.TraderID,
 				conn,
 			)
-
-			// Persist subscription
-			user.DataSubscriptions = append(user.DataSubscriptions, users.DataSubscription{
-				Name:  sub.Name,
-				Etype: sub.Etype,
-				Addr:  sub.Addr,
-			})
-			_ = user.UpdateSubscriptions(r.Context())
 
 		case "unsubscribe":
 			var unsub UnsubscribeCmd
@@ -167,15 +144,6 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 				unsub.Etype,
 				user.TraderID,
 			)
-
-			// Remove from user's saved subscriptions
-			for i, s := range user.DataSubscriptions {
-				if s.Addr == unsub.Addr && s.Etype == unsub.Etype {
-					user.DataSubscriptions = append(user.DataSubscriptions[:i], user.DataSubscriptions[i+1:]...)
-					break
-				}
-			}
-			_ = user.UpdateSubscriptions(r.Context())
 
 		case "search":
 			var search SearchCmd
@@ -193,25 +161,13 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 			if json.Unmarshal(cmd.Data, &swap); swap.AmountIn == 0 {
 				continue
 			}
-			err = MainSimulation.PlaceUserSwap(
-				uint64(user.TraderID),
+			MainSimulation.PlaceUserSwap(
+				user.TraderID,
 				swap.FromSymbol,
 				swap.ToSymbol,
 				swap.AmountIn,
 			)
-			if err != nil {
-				conn.WriteJSON(map[string]string{"error": err.Error()})
-			} else {
-				conn.WriteJSON(map[string]string{"status": "swap_placed"})
-			}
+			conn.WriteJSON(map[string]string{"status": "swap_placed"})
 		}
-	}
-	// --- Remove Connection from all data sources --- //
-	for _, dsub := range subs {
-		MainSimulation.RemoveDataSubscriber(
-			dsub.Addr,
-			dsub.Etype,
-			user.TraderID,
-		)
 	}
 }

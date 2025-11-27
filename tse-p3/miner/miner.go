@@ -8,22 +8,11 @@ import (
 	"tse-p3/memorypool"
 )
 
-func CreateSecondary(parent ledger.Ledger) ledger.Ledger {
-	var (
-		scnd ledger.Ledger
-	)
 
-	scnd = ledger.CreateLedger()
-	(&scnd).Merge(parent)
-	
-	return scnd
-}
-
-func NextBlock(tick uint64, mpl *memorypool.MemoryPool, scnd *ledger.Ledger) (uint, error) {
+func NextBlock(tick uint64, mpl *memorypool.MemoryPool, scnd *ledger.Ledger) error {
 	var (
 		txblock	[]txs.Tx
-		delta	ledger.Ledger
-		count	uint
+		delta	*ledger.Ledger
 		tx		txs.Tx
 		popped	bool
 		err		error
@@ -46,8 +35,8 @@ func NextBlock(tick uint64, mpl *memorypool.MemoryPool, scnd *ledger.Ledger) (ui
 			continue
 		}
 		tx.Notify(txs.TxPass)
-		count += scnd.Merge(delta)
+		scnd.Merge(delta)
 	}
 
-	return count, nil
+	return  nil
 }

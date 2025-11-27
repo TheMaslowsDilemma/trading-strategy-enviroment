@@ -2,9 +2,7 @@ package ledger
 
 import (
 	"fmt"
-	"time"
 	"sync"
-	"encoding/json"
 	"github.com/gorilla/websocket"
 )
 
@@ -39,9 +37,9 @@ func (em *EmitterManager) AddSource(name string, addr Addr, etype EntityType) *d
 
 	var m map[Addr]*data_source
 	switch etype {
-	case EntityWallet:
+	case Wallet_t:
 		m = em.Wallets
-	case EntityExchange:
+	case Exchange_t:
 		m = em.Exchanges
 	default:
 		return nil
@@ -53,7 +51,7 @@ func (em *EmitterManager) AddSource(name string, addr Addr, etype EntityType) *d
 
 	dsrc := new_data_source(name, addr, etype)
 	m[addr] = dsrc
-	en.DataCatalog.AddSource(dsrc)
+	em.DataCatalog.AddSource(dsrc)
 
 	go dsrc.Run() // start the data source routine
 
@@ -64,7 +62,7 @@ func (em *EmitterManager) AddSource(name string, addr Addr, etype EntityType) *d
 func (em *EmitterManager) AddSubscriber(name string, addr Addr, etype EntityType, userID uint64, conn *websocket.Conn) {
 	dsrc := em.AddSource(name, addr, etype)
 	dsrc.AddSubscriber(userID, conn)
-	fmt.Printf("Subscriber %d connected to %s (%s)\n", userID, addr, etype.String())
+	fmt.Printf("Subscriber %v connected to %v (%v)\n", userID, addr, etype.String())
 }
 
 func (em *EmitterManager) RemoveSubscriber(addr Addr, etype EntityType, userID uint64) {
@@ -73,9 +71,9 @@ func (em *EmitterManager) RemoveSubscriber(addr Addr, etype EntityType, userID u
 
 	var m map[Addr]*data_source
 	switch etype {
-	case EntityWallet:
+	case Wallet_t:
 		m = em.Wallets
-	case EntityExchange:
+	case Exchange_t:
 		m = em.Exchanges
 	}
 

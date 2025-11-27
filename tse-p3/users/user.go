@@ -1,8 +1,9 @@
 package users
 
 import (
-	"context"
+	"fmt"
 	"errors"
+	"context"
 
 	"tse-p3/db"
 	"tse-p3/globals"
@@ -15,73 +16,65 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type DataSubscription struct {
-	Name  string            `json:"name"`
-	Etype ledger.EntityType `json:"etype"`
-	Addr  ledger.Addr       `json:"addr"`
-}
-
 type User struct {
 	ID                int64              `json:"id"`
 	Name              string             `json:"name"`
 	TraderID          uint64             `json:"trader_id"`
 	PasswordHash      string             `json:"-"` // this wont be marshalled
-	DataSubscriptions []DataSubscription `json:"data_subscriptions"`
 }
 
-func CreateUser(ctx context.Context, username, password string, sim *simulation.Simulation) (int64, error) {
+func CreateUser(ctx context.Context, username, password string, sim *simulation.Simulation) error {
 	var (
-		hash     []byte
-		err      error
-		trader   *traders.Trader
-		wltDesc  wallets.WalletDescriptor
-		wltAddr  ledger.Addr
-		query    string
-		userID   int64
+		hash		[]byte
+		trader		*traders.Trader
+		wlt_dsc		wallets.WalletDescriptor
+		wlt_addr	ledger.Addr
+		query		string
+		userID		int64
+		err			error
 	)
 
-	trader = traders.CreateTrader()
+	trader = traders.CreateTrader(username)
 
-	wltDesc = wallets.WalletDescriptor{
+	wlt_dsc = wallets.WalletDescriptor{
+		Name: 	fmt.Sprintf("%v:w:%v", username, globals.USDSymbol),
 		Amount: globals.UserStartingBalance,
 		Symbol: globals.USDSymbol,
 	}
-	wltAddr = sim.AddWallet(wltDesc)
-	trader.AddWallet(wltDesc.Symbol, wltAddr)
+
+	wlt_addr = sim.AddWallet(wlt_dsc)
+	trader.AddWallet(wlt_dsc.Symbol, wlt_addr)
 	sim.AddTrader(trader)
-	sim.AddWallet(wltDesc, fmt.Sprintf("%v:w:%v", username, globals.USDSymbol)
+	sim.AddWallet(wlt_dsc)
+
 
 	hash, err = bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return -1, err
+		return err
 	}
 
 	query = `
-		INSERT INTO users (name, password_hash, trader_id, data_subscriptions)
-		VALUES ($1, $2, $3, '{}')
+		INSERT INTO users (name, password_hash, trader_id)
+		VALUES ($1, $2, $3)
 		RETURNING id`
 
-	err = db.Pool.QueryRow(ctx, query, username, string(hash), trader.ID).Scan(&userID)
+	err = db.Pool.QueryRow(ctx, query, username, string(hash), trader.Id).Scan(&userID)
 	if err != nil {
-		return -1, err
+		return err
 	}
 
-	ctx = context.WithValue(ctx, "user.id", userID)
-	ctx = context.WithValue(ctx, "user.name", username)
-	ctx = context.WithValue(ctx, "user.trader.id", trader.ID)
-
-	return  nil
+	return nil
 }
 
 func GetUserByName(ctx context.Context, name string) (User, error) {
 	var (
-		u     User
-		query string
-		err   error
+		u			User
+		query		string
+		err			error
 	)
 
 	query = `
-		SELECT id, name, trader_id, password_hash, data_subscriptions
+		SELECT id, name, trader_id, password_hash
 		FROM users
 		WHERE name = $1`
 
@@ -90,12 +83,12 @@ func GetUserByName(ctx context.Context, name string) (User, error) {
 		&u.Name,
 		&u.TraderID,
 		&u.PasswordHash,
-		(*pgx.Jsonb)(&u.DataSubscriptions),
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {
 		return u, errors.New("user not found")
 	}
+
 	if err != nil {
 		return u, err
 	}
@@ -105,13 +98,13 @@ func GetUserByName(ctx context.Context, name string) (User, error) {
 
 func GetUserById(ctx context.Context, id int64) (User, error) {
 	var (
-		u     User
-		query string
-		err   error
+		u			User
+		query		string
+		err			error
 	)
 
 	query = `
-		SELECT id, name, trader_id, password_hash, data_subscriptions
+		SELECT id, name, trader_id, password_hash
 		FROM users
 		WHERE id = $1`
 
@@ -120,12 +113,12 @@ func GetUserById(ctx context.Context, id int64) (User, error) {
 		&u.Name,
 		&u.TraderID,
 		&u.PasswordHash,
-		(*pgx.Jsonb)(&u.DataSubscriptions),
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {
 		return u, errors.New("user not found")
 	}
+
 	if err != nil {
 		return u, err
 	}
@@ -137,15 +130,4 @@ func (u *User) ComparePassword(password string) bool {
 	var err error
 	err = bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password))
 	return err == nil
-}
-
-func (u *User) UpdateSubscriptions(ctx context.Context) error {
-	var (
-		query string
-		err   error
-	)
-
-	query = `UPDATE users SET data_subscriptions = $1 WHERE id = $2`
-	_, err = db.Pool.Exec(ctx, query, u.DataSubscriptions, u.ID)
-	return err
 }

@@ -2,17 +2,10 @@ package handlers
 
 import (
 	"context"
-	"html/template"
 	"net/http"
 
 	"tse-p3/users"
-	"tse-p3/simulation"
 	"tse-p3/website/sessions"
-)
-
-var (
-	tmpl *template.Template
-	MainSimulaiton	*simulation.Simulation
 )
 
 type formData struct {
@@ -21,10 +14,6 @@ type formData struct {
 	Success string
 }
 
-func InitializeHandlers(sim *simulation.Simulation) {
-	tmpl = template.Must(template.ParseGlob("templates/*.html"))
-	MainSimulation = sim
-}
 
 func RegisterGET(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, "login.html", formData{ Title: "Register" })
@@ -35,9 +24,7 @@ func RegisterPOST(w http.ResponseWriter, r *http.Request) {
 		err      error
 		username string
 		password string
-		user     users.User
 		ctx      context.Context
-		authCtx  context.Context
 	)
 
 	// Parse form
@@ -86,13 +73,13 @@ func LoginPOST(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	ctx := context.Background()
-	user, err := users.GetByUsername(ctx, username)
+	user, err := users.GetUserByName(ctx, username)
 	if err != nil || !user.ComparePassword(password) {
 		tmpl.ExecuteTemplate(w, "login.html", formData{Title: "Login", Error: "Invalid username or password"})
 		return
 	}
 
-	if err := sessions.Set(w, user.Id); err != nil {
+	if err := sessions.Set(w, user.ID); err != nil {
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 		return
 	}

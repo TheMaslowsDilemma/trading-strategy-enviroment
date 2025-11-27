@@ -10,9 +10,9 @@ const (
 func (et EntityType) String() string {
 	switch et {
 	case Wallet_t:
-		return "Wallet"
+		return "wallet"
 	case Exchange_t:
-		return "Exchange"
+		return "exchange"
 	default:
 		return "Unknown"
 	}

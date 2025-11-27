@@ -2,14 +2,8 @@ package simulation
 
 import (
 	"fmt"
-	"tse-p3/bots"
-	"tse-p3/traders"
-	"tse-p3/exchanges"
-	"tse-p3/ledger"
-	"tse-p3/wallets"
 	"tse-p3/globals"
 	"tse-p3/transactions"
-	"tse-p3/strategy"
 	"github.com/holiman/uint256"
 )
 
@@ -25,7 +19,7 @@ func (s *Simulation) PlaceUserSwap(trader_id uint64, from, to string, amount uin
 		AmountMinOut: uint256.NewInt(1),
 		Trader: s.Traders[trader_id],
 		ExchangeAddr: eaddr,
-		Notifier: Notificationator(usr.Name),
+		Notifier: Notificationator,
 	}
 
 	s.placeTx(swaptx)
@@ -49,8 +43,6 @@ func (s *Simulation) PlaceBotSwap(botkey uint64, dscr txs.CpeSwapDescriptor) {
 	s.placeTx(swaptx)
 }
 
-func Notificationator(name string) func (txs.TxResult) {
-	return func (res txs.TxResult) {
-		fmt.Printf("[%v] tx result: %v\n", name, res)
-	}
+func Notificationator(res txs.TxResult) {
+	fmt.Printf("tx result: %v\n", res)
 }

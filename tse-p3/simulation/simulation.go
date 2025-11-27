@@ -9,12 +9,11 @@ import (
 	"tse-p3/bots"
 	"tse-p3/globals"
 	"tse-p3/exchanges"
-	"tse-p3/miner"
 )
 
 type Simulation struct {
-	PrimaryLedger 		ledger.Ledger
-	SecondaryLedger		ledger.Ledger
+	PrimaryLedger 		*ledger.Ledger
+	SecondaryLedger		*ledger.Ledger
 	PrimaryLock			sync.Mutex
 	SecondaryLock		sync.Mutex
 	TraderLock			sync.Mutex
@@ -32,7 +31,7 @@ func NewSimulation() Simulation {
 	)
 
 	sim = Simulation {
-		PrimaryLedger:		ledger.CreateLedgerWithEmitter(),
+		PrimaryLedger:		ledger.NewLedgerWithEmitter(),
 		MemoryPool: 		memorypool.CreateMemoryPool(globals.DefaultMemoryPoolSize),
 		Bots: 				make(map[uint64] *bots.Bot),
 		Traders: 			make(map[uint64] *traders.Trader),
@@ -48,7 +47,7 @@ func NewSimulation() Simulation {
 		SymbolB: globals.USDSymbol,
 	}
 	sim.AddExchange(cped, 0)
-	sim.SecondaryLedger = miner.CreateSecondary(sim.PrimaryLedger)
+	sim.SecondaryLedger = ledger.Clone(*sim.PrimaryLedger)
 	return sim
 }
 
