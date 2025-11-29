@@ -46,6 +46,7 @@ func NewSimulation() Simulation {
 		AmountB: globals.USDCurrencyAmount,
 		SymbolB: globals.USDSymbol,
 	}
+	
 	sim.AddExchange(cped, 0)
 	sim.SecondaryLedger = ledger.Clone(*sim.PrimaryLedger)
 	return sim

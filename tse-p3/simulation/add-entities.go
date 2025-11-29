@@ -1,6 +1,7 @@
 package simulation
 
 import (
+	"fmt"
 	"tse-p3/bots"
 	"tse-p3/ledger"
 	"tse-p3/traders"
@@ -18,8 +19,9 @@ func (s *Simulation) AddBot(name string, strat strategies.Strategy) uint64 {
 		waddr	ledger.Addr
 	)
 
-	trdr = traders.CreateTrader(bot.Name)
+	trdr = traders.CreateTrader(name)
 	wd = wallets.WalletDescriptor {
+		Name: fmt.Sprintf("%v:w:%v", name, globals.USDSymbol),
 		Amount: globals.UserStartingBalance,
 		Symbol: globals.USDSymbol,
 	}

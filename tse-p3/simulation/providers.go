@@ -9,8 +9,6 @@ import (
 	"tse-p3/traders"
 	"tse-p3/transactions"
 	"tse-p3/globals"
-	"github.com/gorilla/websocket"
-
 )
 
 func (s *Simulation) placeTx(tx txs.Tx) bool {
@@ -18,8 +16,8 @@ func (s *Simulation) placeTx(tx txs.Tx) bool {
 }
 
 // --- Data Subscriber Logic --- //
-func (s *Simulation) AddDataSubscriber(name string, addr ledger.Addr, etype ledger.EntityType, userID uint64, conn *websocket.Conn) {
-	s.PrimaryLedger.EmitManager.AddSubscriber(name, addr, etype, userID, conn)
+func (s *Simulation) AddDataSubscriber(name string, addr ledger.Addr, etype ledger.EntityType, userID uint64, emitter ledger.Emit) {
+	s.PrimaryLedger.EmitManager.AddSubscriber(name, addr, etype, userID, emitter)
 }
 
 func (s *Simulation) RemoveDataSubscriber(addr ledger.Addr, etype ledger.EntityType, userID uint64) {

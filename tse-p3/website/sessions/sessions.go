@@ -11,8 +11,8 @@ import (
 const cookie_name = "session_token"
 
 type Store struct {
-	mu    sync.RWMutex
-	data  map[string]session
+	mu		sync.RWMutex
+	data	map[string]session
 }
 
 type session struct {
@@ -51,13 +51,13 @@ func Set(w http.ResponseWriter, userID int64) error {
 
 	expires = time.Now().Add(24 * time.Hour)
 	http.SetCookie(w, &http.Cookie{
-		Name:     cookie_name,
-		Value:    session_id,
-		Expires:  expires,
-		HttpOnly: true,
-		Secure:   false,
-		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
+		Name:		cookie_name,
+		Value:		session_id,
+		Expires:	expires,
+		HttpOnly:	true,
+		Secure:		false,
+		Path:		"/",
+		SameSite:	http.SameSiteLaxMode,
 	})
 
 	store.mu.Lock()
@@ -68,13 +68,20 @@ func Set(w http.ResponseWriter, userID int64) error {
 }
 
 func Get(r *http.Request) (int64, bool) {
-	cookie, err := r.Cookie(cookie_name)
+	var (
+		cookie	*http.Cookie
+		s		session
+		ok		bool
+		err		error
+	)
+
+	cookie, err = r.Cookie(cookie_name)
 	if err != nil {
 		return 0, false
 	}
 
 	store.mu.RLock()
-	s, ok := store.data[cookie.Value]
+	s, ok = store.data[cookie.Value]
 	store.mu.RUnlock()
 
 	if !ok || time.Now().After(s.Expires) {
@@ -84,7 +91,12 @@ func Get(r *http.Request) (int64, bool) {
 }
 
 func Clear(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(cookie_name)
+	var (
+		cookie	*http.Cookie
+		err		error
+	)
+
+	cookie, err = r.Cookie(cookie_name)
 	if err != nil {
 		return
 	}

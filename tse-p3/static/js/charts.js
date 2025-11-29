@@ -14,7 +14,6 @@ let charting_state = {
 	},
 };
 
-let chart = null;                   // main chart is now per-exchange, but we keep this for future use
 let ws    = null;                   // global ws reference so handlers can use it
 
 function main_handler() {
@@ -23,8 +22,6 @@ function main_handler() {
 	ws.onopen    = on_open_handler;
 	ws.onmessage = on_message_handler;
 	ws.onclose   = on_close_handler;
-
-	chart = document.getElementById('chart'); // kept for compatibility, not used right now
 
 	init_ui_elements();
 }
@@ -55,14 +52,12 @@ function init_ui_elements() {
 		}
 	});
 
-	// subscription counter
-	const update_sub_list = () => {
-		const total = charting_state.wallets.subscribed.size 
-		            + charting_state.exchanges.subscribed.size;
-		document.getElementById('subList').textContent = total || 'None';
-	};
-
-	window.update_sub_list = update_sub_list;
+	document.addEventListener('click', (e) => {
+		const container = document.querySelector('.search-container');
+		if (!container.contains(e.target)) {
+			document.getElementById('search_rslts').innerHTML = '';
+		}
+	});
 }
 
 ///
@@ -140,8 +135,6 @@ const handle_exchange_data = (exchange) => {
     }
 
 	const entry = charting_state.exchanges.in_view.get(addr);
-
-    // Re-render the chart
     render_candles(exchange.candles, entry.svg);
 }
 
@@ -150,7 +143,7 @@ const handle_exchange_data = (exchange) => {
 ///
 
 function handle_search_results_data(search_results) {
-	const container = document.getElementById('search_rslt');
+	const container = document.getElementById('search_rslts');
 	if (!container) return;
 
 	container.innerHTML = '<strong>Results:</strong><br>';
@@ -161,20 +154,21 @@ function handle_search_results_data(search_results) {
 	}
 
 	search_results.forEach(sr => {
-		const already_subbed = is_subscribed(sr.entity_type, sr.address);
+		let already_subbed = is_subscribed(sr.entity_type, sr.address);
 
-		const line = document.createElement('div');
-		line.style.margin = '8px 0';
+		const search_result_div = document.createElement('div');
+		search_result_div.setAttribute('class', 'search-result-item')
 
-		const txt  = document.createElement('span');
-		txt.textContent = `${sr.name} (${sr.address}) `;
-		txt.style.marginRight = '12px';
+		const search_result_txt  = document.createElement('span');
+		search_result_txt.textContent = `${sr.name} (${sr.address}) `;
 
 		const btn  = document.createElement('button');
+
 		btn.textContent = already_subbed ? 'Unsubscribe' : 'Subscribe';
-		btn.style.padding = '4px 10px';
 
 		btn.onclick = () => {
+			already_subbed = is_subscribed(sr.entity_type, sr.address);
+			btn.textContent = already_subbed ? 'Unsubscribe' : 'Subscribe';
 			if (already_subbed) {
 				ws.send(JSON.stringify({ type: 'unsubscribe', data: sr }));
 				remove_subscription(sr.entity_type, sr.address);
@@ -203,15 +197,14 @@ function handle_search_results_data(search_results) {
 			btn.textContent = already_subbed ? 'Subscribe' : 'Unsubscribe';
 		};
 
-		line.appendChild(txt);
-		line.appendChild(btn);
-		container.appendChild(line);
+		search_result_div.appendChild(search_result_txt);
+		search_result_div.appendChild(btn);
+		container.appendChild(search_result_div);
 	});
 }
 
 ///
 /// ------------------- Subscription Helpers ------------------- ///
-///
 
 function is_subscribed(entity_type, addr) {
 	if (entity_type === wallet_etype)   return charting_state.wallets.subscribed.has(addr);
@@ -234,68 +227,55 @@ function remove_subscription(entity_type, addr) {
 ///
 
 function create_wallet_display(sr) {
-	const div = document.createElement('div');
-	div.id = `wallet-${sr.address}`;
-	div.style.cssText = `
-		padding: 12px;
-		margin: 10px 0;
-		border: 1px solid #555;
-		border-radius: 8px;
-		background: #1e1e1e;
-	`;
+    const div = document.createElement('div');
+    div.id = `wallet-${sr.address}`;
+    div.className = 'wallet-display';                // ← this is the only new line
 
-	div.innerHTML = `
-		<strong>${sr.name}</strong><br>
-		Balance: <span class="balance">loading...</span> <span class="symbol">?</span>
-	`;
+    div.innerHTML = `
+        <strong>${sr.name}</strong><br>
+        Balance: <span class="balance">loading...</span> <span class="symbol">?</span>
+    `;
 
-	const chart_box = document.querySelector('.chart-box');
-	chart_box.parentNode.insertBefore(div, chart_box);
+    const chart_box = document.querySelector('.chart-box');
+    chart_box.parentNode.insertBefore(div, chart_box);
 
-	charting_state.wallets.in_view.set(sr.address, div);
+    charting_state.wallets.in_view.set(sr.address, div);
 }
 
 function create_exchange_display(sr) {
-	// Create container div
-	const div = document.createElement('div');
-	div.style.cssText = `
-		padding: 12px;
-		margin: 15px 0;
-		border: 1px solid #666;
-		border-radius: 10px;
-		background: #eeeeee;
-	`;
+    // Create container div
+    const div = document.createElement('div');
+    div.className = 'exchange-display';               // ← this is the only new line
 
-	const nameElement = document.createElement('strong');
-	nameElement.textContent = sr.name;
-	div.appendChild(nameElement);
-	div.appendChild(document.createElement('br'));
+    const nameElement = document.createElement('strong');
+    nameElement.textContent = sr.name;
+    div.appendChild(nameElement);
+    div.appendChild(document.createElement('br'));
 
-	const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-	svg.setAttribute('width', '100%');
-	svg.setAttribute('height', '100%');
-	svg.setAttribute('id',`exchange-${sr.address}`);
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '100%');
+    svg.setAttribute('id', `exchange-${sr.address}`);
 
-	div.appendChild(svg);
+    div.appendChild(svg);
 
-	// Insert into DOM before .chart-box
-	const chartBox = document.querySelector('.chart-box');
-	if (chartBox && chartBox.parentNode) {
-		chartBox.appendChild(div);
-	} else {
-		console.warn('.chart-box not found, appending to body instead');
-		document.body.appendChild(div);
-	}
+    const chartBox = document.querySelector('.chart-box');
+    if (chartBox) {
+        chartBox.appendChild(div);
+    } else {
+        console.warn('.chart-box not found, appending to body instead');
+        document.body.appendChild(div);
+    }
 
-	// Store reference in your state
-	if (!charting_state.exchanges.in_view) {
-		charting_state.exchanges.in_view = new Map();
-	}
+    // Store reference in state
+    if (!charting_state.exchanges.in_view) {
+        charting_state.exchanges.in_view = new Map();
+    }
 
-	charting_state.exchanges.in_view.set(sr.address, {
-		svg: svg,
-		div: div,
-	});
+    charting_state.exchanges.in_view.set(sr.address, {
+        svg: svg,
+        div: div,
+    });
 }
 
 ///

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"context"
 	"net/http"
 
@@ -48,6 +49,7 @@ func RegisterPOST(w http.ResponseWriter, r *http.Request) {
 
 	ctx = context.Background()
 	err = users.CreateUser(ctx, username, password, MainSimulation)
+	fmt.Println(err)
 	if err != nil {
 		tmpl.ExecuteTemplate(w, "login.html", formData{
 			Title: "Register",

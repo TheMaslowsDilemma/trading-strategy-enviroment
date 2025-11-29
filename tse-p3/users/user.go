@@ -17,10 +17,11 @@ import (
 )
 
 type User struct {
-	ID                int64              `json:"id"`
-	Name              string             `json:"name"`
-	TraderID          uint64             `json:"trader_id"`
-	PasswordHash      string             `json:"-"` // this wont be marshalled
+	ID				int64	`json:"id"`
+	Name			string	`json:"name"`
+	TraderID		uint64	`json:"trader_id"`
+	PasswordHash	string	`json:"-"` // this wont be marshalled
+	Active			bool	`json:"active"`
 }
 
 func CreateUser(ctx context.Context, username, password string, sim *simulation.Simulation) error {
@@ -37,15 +38,14 @@ func CreateUser(ctx context.Context, username, password string, sim *simulation.
 	trader = traders.CreateTrader(username)
 
 	wlt_dsc = wallets.WalletDescriptor{
-		Name: 	fmt.Sprintf("%v:w:%v", username, globals.USDSymbol),
-		Amount: globals.UserStartingBalance,
-		Symbol: globals.USDSymbol,
+		Name:	fmt.Sprintf("%v:w:%v", username, globals.USDSymbol),
+		Amount:	globals.UserStartingBalance,
+		Symbol:	globals.USDSymbol,
 	}
 
 	wlt_addr = sim.AddWallet(wlt_dsc)
 	trader.AddWallet(wlt_dsc.Symbol, wlt_addr)
 	sim.AddTrader(trader)
-	sim.AddWallet(wlt_dsc)
 
 
 	hash, err = bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -74,7 +74,7 @@ func GetUserByName(ctx context.Context, name string) (User, error) {
 	)
 
 	query = `
-		SELECT id, name, trader_id, password_hash
+		SELECT id, name, trader_id, password_hash, active
 		FROM users
 		WHERE name = $1`
 
@@ -83,6 +83,7 @@ func GetUserByName(ctx context.Context, name string) (User, error) {
 		&u.Name,
 		&u.TraderID,
 		&u.PasswordHash,
+		&u.Active,
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -104,7 +105,7 @@ func GetUserById(ctx context.Context, id int64) (User, error) {
 	)
 
 	query = `
-		SELECT id, name, trader_id, password_hash
+		SELECT id, name, trader_id, password_hash, active
 		FROM users
 		WHERE id = $1`
 
@@ -113,6 +114,7 @@ func GetUserById(ctx context.Context, id int64) (User, error) {
 		&u.Name,
 		&u.TraderID,
 		&u.PasswordHash,
+		&u.Active,
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -124,6 +126,23 @@ func GetUserById(ctx context.Context, id int64) (User, error) {
 	}
 
 	return u, nil
+}
+
+func SetUserActivity(ctx context.Context, uid int64, active bool) error {
+	var (
+		query	string
+		err		error
+	)
+	query = `
+		UPDATE users
+		SET active = $1
+		WHERE id = $2`
+
+	_, err = db.Pool.Exec(ctx, query, active, uid)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (u *User) ComparePassword(password string) bool {

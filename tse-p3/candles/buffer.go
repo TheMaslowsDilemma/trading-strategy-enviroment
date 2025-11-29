@@ -18,34 +18,10 @@ func CreateCandleBuffer(size uint) CandleBuffer {
 
 func (cb *CandleBuffer) Push(cndl Candle) {
 	cb.Cnds[cb.Head] = cndl
-	if cb.Head == cb.Tail + cb.Size - 1 {
+	if cb.Head == (cb.Tail + cb.Size - 1) % cb.Size {
 		cb.Tail = (cb.Tail + 1) % cb.Size
 	}
 	cb.Head = (cb.Head + 1) % cb.Size
-}
-
-func (cb *CandleBuffer) Flush(n uint) []Candle {
-	var (
-		count 	uint
-		i		uint
-		cs		[]Candle
-	)
-	
-	// its empty
-	if cb.Head == cb.Tail {
-		return []Candle{}
-	}
-
-	count = (cb.Head + cb.Size - cb.Tail) % cb.Size
-	count = min(count, n)
-	cs = make([]Candle, count)
-
-	for i = 0; i < count; i++ {
-		cs[i] = cb.Cnds[cb.Tail]
-		cb.Tail = (cb.Tail + 1) % cb.Size
-	}
-
-	return cs
 }
 
 func (cb CandleBuffer) GetCandles() []Candle {
@@ -70,21 +46,9 @@ func (cb CandleBuffer) GetCandles() []Candle {
 }
 
 func (cb CandleBuffer) Clone() CandleBuffer {
-	var (
-		count	uint
-		i		uint
-		cs		[]Candle
-	)
-	
-	cs = make([]Candle, cb.Size)
-	count = (cb.Head + cb.Size - cb.Tail) % cb.Size
-
-	for i = 0; i < count; i++ {
-		cs[i] = cb.Cnds[(cb.Tail + i) % cb.Size]
-	}
 	
 	return CandleBuffer {
-		Cnds: cs,
+		Cnds: cb.Cnds,
 		Head: cb.Head,
 		Tail: cb.Tail,
 		Size: cb.Size,

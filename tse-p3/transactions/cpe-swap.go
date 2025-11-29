@@ -64,7 +64,7 @@ func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (*ledger.Ledger, error) {
 	rcv_wlt_addr, rcv_wlt_exists = tx.Trader.GetWalletAddr(tx.SymbolOut)
 	if !rcv_wlt_exists {
 		rcv_wlt_addr = ledger_delta.AddWallet(wallets.WalletDescriptor {
-			Name: tx.Trader.Name,
+			Name: fmt.Sprintf("%v:w:%v", tx.Trader.Name, tx.SymbolOut),
 			Amount: 0,
 			Symbol: tx.SymbolOut,
 		})

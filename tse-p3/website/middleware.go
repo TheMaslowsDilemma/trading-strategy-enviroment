@@ -33,6 +33,7 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		ctx = r.Context()
 
 		usr, err = users.GetUserById(ctx, usr_id)
+		
 		if err != nil {
 			sessions.Clear(w, r)
 			http.Redirect(w, r, "/login", http.StatusSeeOther)

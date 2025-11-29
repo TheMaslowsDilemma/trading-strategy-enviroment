@@ -2,13 +2,8 @@ package handlers
 
 import (
 	"fmt"
-	"strconv"
 	"context"
 	"net/http"
-	"encoding/json"
-
-	"tse-p3/ledger"
-	"tse-p3/users"
 
 	"github.com/gorilla/websocket"
 )
@@ -16,158 +11,73 @@ import (
 var (
 	upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			return true // tighten in production!
+			return true
 		},
 	}
 )
 
-// Command structures
-type SubscribeCmd struct {
-	Name  string            `json:"name"`
-	Etype ledger.EntityType `json:"entity_type"`
-	Addr  string 			`json:"address"`
-}
-
-type UnsubscribeCmd struct {
-	Etype ledger.EntityType `json:"entity_type"`
-	Addr  ledger.Addr       `json:"address"`
-}
-
-type SearchCmd struct {
-	Name string `json:"name"`
-}
-
-type SwapCmd struct {
-	AmountIn   uint64 `json:"amount_in"`
-	FromSymbol string `json:"from_symbol"`
-	ToSymbol   string `json:"to_symbol"`
-}
-
-type CommandMessage struct {
-	Type string          `json:"type"` // "subscribe" | "unsubscribe" | "search" | "swap"
-	Data json.RawMessage `json:"data"`
-}
-
 func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	var (
+		client		*ws_client
 		conn		*websocket.Conn
 		ctx			context.Context
-		user		users.User
-		userOK		bool
-		msgType		int
-		message		[]byte
-		cmd			CommandMessage
-		value		interface{}
+		msg_type	int
+		msg_in		[]byte
 		err			error
 	)
 
-	// 1. Upgrade connection
+	ctx = r.Context()
 	conn, err = upgrader.Upgrade(w, r, nil)
+
 	if err != nil {
-		fmt.Printf("WebSocket upgrade failed: %v\n", err)
+		fmt.Printf("websocket upgrade failed: %v\n", err)
 		return
 	}
 	defer conn.Close()
+	defer client.Close()
 
-	// 2. Extract user id from context
-	ctx = r.Context()
-	value = ctx.Value("user")
-	if value != nil {
-		user, userOK = value.(users.User)
-		if !userOK {
-			fmt.Println("user value could not parse")
-			conn.WriteJSON(map[string]string{"error": "unauthenticated"})
-			return
-		}
-	} else {
-		conn.WriteJSON(map[string]string{"error": "no user found"})
+
+	client, err = init_ws_client(ctx, conn)
+	if err != nil {
+		fmt.Printf("ws client init failed: %v\n", err)
 		return
 	}
 
-	fmt.Println("websocket added subscriptions")
+	go client.WriterLoop()
 
-	// -- initialize user data
-	_ = conn.WriteJSON(map[string]interface{}{
-		"type": "initialize",
-		"data": user,
-	})
-
-	fmt.Println("websocket wrote welcome")
-
-
-	// 4. Main message loop
+	message_loop:
 	for {
-		msgType, message, err = conn.ReadMessage()
+		msg_type, msg_in, err = conn.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				fmt.Printf("WebSocket error: %v\n", err)
+		if closeErr, ok := err.(*websocket.CloseError); ok {
+			switch closeErr.Code {
+				case websocket.CloseGoingAway:
+					fmt.Printf("websocket closed normally (Going Away): %v\n", err)
+					break message_loop
+
+				case websocket.CloseNormalClosure:
+					fmt.Printf("websocket closed normally: %v\n", err)
+					break message_loop
 			}
-			break
 		}
 
-		if msgType != websocket.TextMessage {
-			continue
+		// If we get here, it's either an unexpected close code or a non-CloseError
+		if websocket.IsUnexpectedCloseError(err,
+		websocket.CloseGoingAway,
+		websocket.CloseNormalClosure,
+		websocket.CloseAbnormalClosure) {
+
+		fmt.Printf("websocket read message error (unexpected): '%v'. stopping message loop.\n", err)
+		} else {
+		fmt.Printf("some other error occurred: %v\n", err)
 		}
 
-		// Parse top-level command
-		if err = json.Unmarshal(message, &cmd); err != nil {
-			continue
+		break message_loop
 		}
-
-		switch cmd.Type {
-		case "subscribe":
-			fmt.Println("got subscribe request!")
-			var sub SubscribeCmd
-			if json.Unmarshal(cmd.Data, &sub); sub.Name == "" {
-				continue
-			}
-			addr64, err := strconv.ParseUint(sub.Addr, 10, 64)
-			if err != nil {
-				continue
-			}
-
-			MainSimulation.AddDataSubscriber(
-				sub.Name,
-				ledger.Addr(addr64),
-				sub.Etype,
-				user.TraderID,
-				conn,
-			)
-
-		case "unsubscribe":
-			var unsub UnsubscribeCmd
-			if json.Unmarshal(cmd.Data, &unsub); unsub.Addr == 0 {
-				continue
-			}
-			MainSimulation.RemoveDataSubscriber(
-				unsub.Addr,
-				unsub.Etype,
-				user.TraderID,
-			)
-
-		case "search":
-			var search SearchCmd
-			if json.Unmarshal(cmd.Data, &search); search.Name == "" {
-				continue
-			}
-			results := MainSimulation.SearchDataSources(search.Name)
-			_ = conn.WriteJSON(map[string]interface{}{
-				"type": "search_results",
-				"data": results,
-			})
-
-		case "swap":
-			var swap SwapCmd
-			if json.Unmarshal(cmd.Data, &swap); swap.AmountIn == 0 {
-				continue
-			}
-			MainSimulation.PlaceUserSwap(
-				user.TraderID,
-				swap.FromSymbol,
-				swap.ToSymbol,
-				swap.AmountIn,
-			)
-			conn.WriteJSON(map[string]string{"status": "swap_placed"})
+		
+		err = client.handle_incoming(msg_type, msg_in)
+		if err != nil {
+			fmt.Printf("client failed to handle incoming: %v\n", err)
 		}
 	}
 }

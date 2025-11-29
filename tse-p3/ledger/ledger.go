@@ -110,23 +110,19 @@ func (l *Ledger) MergeAndEmit(tick uint64, delta *Ledger) {
 
 	// --- Wallets ---
 	for addr, newWallet := range delta.Wallets {
+		// Update state
+		l.Wallets[addr] = newWallet
 
-		oldWallet, exists := l.Wallets[addr]
-
-		if !exists || oldWallet.Hash() != newWallet.Hash() {
-			// Update state
-			l.Wallets[addr] = newWallet
-
-			// Emit change
-			dsrc := l.EmitManager.AddSource(newWallet.Name, addr, Wallet_t) // ensures source exists
-			dsrc.Emit(tick,
-				map[string]any{
-					"name": dsrc.Name,
-					"address": strconv.FormatUint(uint64(addr), 10),
-					"balance": newWallet.Reserve.Amount.String(),
-					"symbol":   newWallet.Reserve.Symbol,
-				},Wallet_t)
-		}
+		// Emit change
+		dsrc := l.EmitManager.AddSource(newWallet.Name, addr, Wallet_t) // ensures source exists
+		dsrc.Emit(tick,
+			map[string]any {
+				"name": dsrc.Name,
+				"address": strconv.FormatUint(uint64(addr), 10),
+				"balance":	newWallet.Reserve.Amount.String(),
+				"symbol":	newWallet.Reserve.Symbol,
+			},Wallet_t)
+		
 	}
 
 	// --- Exchanges ---

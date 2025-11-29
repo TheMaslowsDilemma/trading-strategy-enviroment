@@ -3,12 +3,13 @@ package ledger
 import (
 	"fmt"
 	"sync"
-	"github.com/gorilla/websocket"
 )
 
 /** Question: Why do data_source need their own go routines... **/
 
 // ------------------------ EmitterManager ---------------------------- //
+
+type Emit func (msg map[string]interface{}) error
 
 type EmitterManager struct {
 	mu			sync.RWMutex
@@ -35,6 +36,7 @@ func (em *EmitterManager) AddSource(name string, addr Addr, etype EntityType) *d
 	em.mu.Lock()
 	defer em.mu.Unlock()
 
+
 	var m map[Addr]*data_source
 	switch etype {
 	case Wallet_t:
@@ -49,6 +51,9 @@ func (em *EmitterManager) AddSource(name string, addr Addr, etype EntityType) *d
 		return dsrc // already exists
 	}
 
+	if etype == Wallet_t {
+		fmt.Printf("adding wallet %v %v\n", name, addr)
+	}
 	dsrc := new_data_source(name, addr, etype)
 	m[addr] = dsrc
 	em.DataCatalog.AddSource(dsrc)
@@ -59,10 +64,10 @@ func (em *EmitterManager) AddSource(name string, addr Addr, etype EntityType) *d
 }
 
 // AddSubscriber attaches a WebSocket connection to a source (creates source if needed)
-func (em *EmitterManager) AddSubscriber(name string, addr Addr, etype EntityType, userID uint64, conn *websocket.Conn) {
+func (em *EmitterManager) AddSubscriber(name string, addr Addr, etype EntityType, userID uint64, emitter Emit) {
 	dsrc := em.AddSource(name, addr, etype)
-	dsrc.AddSubscriber(userID, conn)
-	fmt.Printf("Subscriber %v connected to %v (%v)\n", userID, addr, etype.String())
+	dsrc.AddEmitter(userID, emitter)
+	fmt.Printf("Subscriber '%v' connected to '%v' %v\n", userID, name, etype.String())
 }
 
 func (em *EmitterManager) RemoveSubscriber(addr Addr, etype EntityType, userID uint64) {
@@ -78,6 +83,6 @@ func (em *EmitterManager) RemoveSubscriber(addr Addr, etype EntityType, userID u
 	}
 
 	if src, ok := m[addr]; ok {
-		src.RemoveSubscriber(userID)
+		src.RemoveEmitter(userID)
 	}
 }
