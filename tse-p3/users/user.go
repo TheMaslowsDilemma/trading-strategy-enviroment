@@ -3,6 +3,7 @@ package users
 import (
 	"fmt"
 	"errors"
+	"strconv"
 	"context"
 
 	"tse-p3/db"
@@ -58,7 +59,7 @@ func CreateUser(ctx context.Context, username, password string, sim *simulation.
 		VALUES ($1, $2, $3)
 		RETURNING id`
 
-	err = db.Pool.QueryRow(ctx, query, username, string(hash), trader.Id).Scan(&userID)
+	err = db.Pool.QueryRow(ctx, query, username, string(hash), strconv.FormatUint(trader.Id, 10)).Scan(&userID)
 	if err != nil {
 		return err
 	}
@@ -70,6 +71,7 @@ func GetUserByName(ctx context.Context, name string) (User, error) {
 	var (
 		u			User
 		query		string
+		tid_str		string
 		err			error
 	)
 
@@ -78,10 +80,11 @@ func GetUserByName(ctx context.Context, name string) (User, error) {
 		FROM users
 		WHERE name = $1`
 
+
 	err = db.Pool.QueryRow(ctx, query, name).Scan(
 		&u.ID,
 		&u.Name,
-		&u.TraderID,
+		&tid_str,
 		&u.PasswordHash,
 		&u.Active,
 	)
@@ -94,6 +97,11 @@ func GetUserByName(ctx context.Context, name string) (User, error) {
 		return u, err
 	}
 
+	u.TraderID, err = strconv.ParseUint(tid_str, 10, 64)
+	if err != nil {
+		return u, err
+	}
+	
 	return u, nil
 }
 
@@ -101,6 +109,7 @@ func GetUserById(ctx context.Context, id int64) (User, error) {
 	var (
 		u			User
 		query		string
+		tid_str		string
 		err			error
 	)
 
@@ -112,7 +121,7 @@ func GetUserById(ctx context.Context, id int64) (User, error) {
 	err = db.Pool.QueryRow(ctx, query, id).Scan(
 		&u.ID,
 		&u.Name,
-		&u.TraderID,
+		&tid_str,
 		&u.PasswordHash,
 		&u.Active,
 	)
@@ -121,6 +130,11 @@ func GetUserById(ctx context.Context, id int64) (User, error) {
 		return u, errors.New("user not found")
 	}
 
+	if err != nil {
+		return u, err
+	}
+
+	u.TraderID, err = strconv.ParseUint(tid_str, 10, 64)
 	if err != nil {
 		return u, err
 	}

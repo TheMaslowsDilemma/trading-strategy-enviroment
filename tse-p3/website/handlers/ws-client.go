@@ -15,7 +15,7 @@ const WS_CLIENT_OUT_BUFF_SIZE = 100
 
 type ws_client struct {
 	conn	*websocket.Conn
-	ctx			context.Context
+	ctx		context.Context
 	Healthy	bool
 	user	users.User
 	Cancel	chan bool
@@ -59,16 +59,18 @@ func init_ws_client(ctx context.Context, wsc *websocket.Conn) (*ws_client, error
 	}
 
 	if !usr.Active {
+		err = users.SetUserActivity(ctx, usr.ID, true)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update user activity: %v", err)
+		}
+
 		// TODO:
 		// go and turn on its trader / wallets etc.
 		// this means those wallets etc. would need to
 		// be persisted somewhere so that at this point
 		// they could start with the same balances
 	}
-	err = users.SetUserActivity(ctx, usr.ID, false)
-	if err != nil {
-		return nil, err
-	}
+
 
 	return &ws_client {
 		conn: wsc,

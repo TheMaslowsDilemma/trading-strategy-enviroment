@@ -45,7 +45,7 @@ func (tx CpeSwap) Apply(tick uint64, l ledger.Ledger) (*ledger.Ledger, error) {
 		amt_out			*uint256.Int
 		price			float64
 	)
-
+	
 	ledger_delta = ledger.Clone(l)
 
 	// --- First Find the Exchange --- //

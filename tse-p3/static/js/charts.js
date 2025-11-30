@@ -128,14 +128,14 @@ function handle_wallet_data(wallet) {
 }
 
 const handle_exchange_data = (exchange) => {
-    const addr = exchange?.address;
-    if (!addr) {
-        console.warn('Exchange missing address');
-        return;
-    }
+	const addr = exchange?.address;
+	if (!addr) {
+		console.warn('Exchange missing address');
+		return;
+	}
 
 	const entry = charting_state.exchanges.in_view.get(addr);
-    render_candles(exchange.candles, entry.svg);
+	render_candles(exchange.candles, entry.svg);
 }
 
 ///
@@ -227,55 +227,116 @@ function remove_subscription(entity_type, addr) {
 ///
 
 function create_wallet_display(sr) {
-    const div = document.createElement('div');
-    div.id = `wallet-${sr.address}`;
-    div.className = 'wallet-display';                // ← this is the only new line
+	const div = document.createElement('div');
+	div.id = `wallet-${sr.address}`;
+	div.className = 'wallet-display';
 
-    div.innerHTML = `
-        <strong>${sr.name}</strong><br>
-        Balance: <span class="balance">loading...</span> <span class="symbol">?</span>
-    `;
+	div.innerHTML = `
+		<strong>${sr.name}</strong><br>
+		Balance: <span class="balance">loading...</span> <span class="symbol">?</span>
+	`;
 
-    const chart_box = document.querySelector('.chart-box');
-    chart_box.parentNode.insertBefore(div, chart_box);
+	// Insert into the LEFT sidebar
+	const walletBox = document.querySelector('.wallet-box');
+	walletBox.appendChild(div);
 
-    charting_state.wallets.in_view.set(sr.address, div);
+	charting_state.wallets.in_view.set(sr.address, div);
 }
 
 function create_exchange_display(sr) {
-    // Create container div
-    const div = document.createElement('div');
-    div.className = 'exchange-display';               // ← this is the only new line
+	// Split "TOKENA:e:TOKENB" into [TOKENA, TOKENB]
+	const symbols = sr.name.split(':e:');
+	const symbolA = symbols[0].trim();  // e.g., "USDC"
+	const symbolB = symbols[1].trim();  // e.g., "SOL"
 
-    const nameElement = document.createElement('strong');
-    nameElement.textContent = sr.name;
-    div.appendChild(nameElement);
-    div.appendChild(document.createElement('br'));
+	const div = document.createElement('div');
+	div.className = 'exchange-display';
 
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('width', '100%');
-    svg.setAttribute('height', '100%');
-    svg.setAttribute('id', `exchange-${sr.address}`);
+	// Display pair name
+	const nameElement = document.createElement('strong');
+	nameElement.textContent = sr.name;
+	div.appendChild(nameElement);
+	div.appendChild(document.createElement('br'));
 
-    div.appendChild(svg);
+	// Amount input
+	const amountInput = document.createElement('input');
+	amountInput.type = 'number';
+	amountInput.placeholder = 'Amount';
+	amountInput.className = 'amount-input';
+	amountInput.min = '0';
+	amountInput.step = 'any';
+	div.appendChild(amountInput);
 
-    const chartBox = document.querySelector('.chart-box');
-    if (chartBox) {
-        chartBox.appendChild(div);
-    } else {
-        console.warn('.chart-box not found, appending to body instead');
-        document.body.appendChild(div);
-    }
+	// Buy Button: Buy A with B → swap from B to A
+	const buyButton = document.createElement('button');
+	buyButton.className = 'buy-bttn';
+	buyButton.textContent = `Buy ${symbolA}`;
+	buyButton.onclick = () => {
+		const amount = parseFloat(amountInput.value);
+		if (isNaN(amount) || amount <= 0) {
+			alert('Please enter a valid amount');
+			return;
+		}
+		ws.send(JSON.stringify({
+			type: "swap",
+			data: {
+				from_symbol: symbolB,
+				to_symbol: symbolA,
+				amount_in: amount,
+			}
+		}));
+		amountInput.value = ''; // optional: clear input
+	};
+	div.appendChild(buyButton);
 
-    // Store reference in state
-    if (!charting_state.exchanges.in_view) {
-        charting_state.exchanges.in_view = new Map();
-    }
+	// Sell Button: Sell A for B → swap from A to B
+	const sellButton = document.createElement('button');
+	sellButton.className = 'sell-bttn';
+	sellButton.textContent = `Sell ${symbolA}`;
+	sellButton.onclick = () => {
+		const amount = parseFloat(amountInput.value);
+		if (isNaN(amount) || amount <= 0) {
+			alert('Please enter a valid amount');
+			return;
+		}
+		ws.send(JSON.stringify({
+			type: "swap",
+			data: {
+				from_symbol: symbolA,
+				to_symbol: symbolB,
+				amount_in: amount,
+			}
+		}));
+		amountInput.value = '';
+	};
+	div.appendChild(sellButton);
 
-    charting_state.exchanges.in_view.set(sr.address, {
-        svg: svg,
-        div: div,
-    });
+	// SVG container for chart
+	const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+	svg.setAttribute('width', '100%');
+	svg.setAttribute('height', '200'); // or desired height
+	svg.id = `exchange-${sr.address}`;
+	div.appendChild(svg);
+
+	// Append to chart box
+	const chartBox = document.querySelector('.chart-box');
+	if (chartBox) {
+		chartBox.appendChild(div);
+	} else {
+		console.error('.chart-box not found in DOM');
+	}
+
+	// Store in charting state for later access (e.g. updating charts)
+	if (!charting_state.exchanges.in_view) {
+		charting_state.exchanges.in_view = new Map();
+	}
+	charting_state.exchanges.in_view.set(sr.address, {
+		svg: svg,
+		div: div,
+		symbolA,
+		symbolB,
+		pairName: sr.name
+	});
 }
 
 ///

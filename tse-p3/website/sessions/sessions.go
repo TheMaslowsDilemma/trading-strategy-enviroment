@@ -48,7 +48,7 @@ func Set(w http.ResponseWriter, userID int64) error {
 	if err != nil {
 		return err
 	}
-
+	
 	expires = time.Now().Add(24 * time.Hour)
 	http.SetCookie(w, &http.Cookie{
 		Name:		cookie_name,

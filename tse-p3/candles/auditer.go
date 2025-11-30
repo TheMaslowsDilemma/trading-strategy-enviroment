@@ -21,7 +21,6 @@ func (a *Auditer) Audit(price float64, tick uint64) {
 	if tick != a.ActiveCandle.Ts {
 		a.CandleBuffer.Push(a.ActiveCandle)
 		(&a.ActiveCandle).Start(price, tick)
-		fmt.Printf("[%v] price: %v\n", tick, price)
 	} else {
 		(&a.ActiveCandle).Add(price)
 	}

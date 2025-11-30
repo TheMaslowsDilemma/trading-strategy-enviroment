@@ -1,6 +1,7 @@
 package website
 
 import (
+	"fmt"
 	"context"
 	"html/template"
 	"net/http"
@@ -26,6 +27,7 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		usr_id, ok = sessions.Get(r)
 		if !ok {
+			fmt.Println("session could get %v\n", usr_id)
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}

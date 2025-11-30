@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"context"
 	"net/http"
 	"tse-p3/users"
@@ -15,15 +16,16 @@ func ChartsHandler(w http.ResponseWriter, r *http.Request) {
 		value	interface{}
 		err		error
 	)
-
+	
 	ctx = r.Context()
-
+	
 	// --- Get username from context ---
 	value = ctx.Value("user")
 	if value != nil {
 		user, userOK = value.(users.User)
 	}
 	if !userOK {
+		fmt.Println("No user found on charts page")
 		http.Error(w, "No user found", http.StatusInternalServerError)
 		return
 	}

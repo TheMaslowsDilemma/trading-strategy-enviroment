@@ -62,10 +62,7 @@ func (l *Ledger) AddWallet(wd wallets.WalletDescriptor) Addr {
 func (l *Ledger) AddConstantProductExchange(cd exchanges.CpeDescriptor, tick uint64) Addr {
 	addr := Addr(globals.Rand64())
 	cpe := exchanges.CreateConstantProductExchange(cd, tick)
-	name := fmt.Sprintf("%v <=> %v",
-		cpe.ReserveA.Symbol,
-		cpe.ReserveB.Symbol,
-	)
+	name := globals.GetExchangeName(cd.SymbolA, cd.SymbolB)
 	l.Exchanges[addr] = cpe
 
 	if l.EmitManager != nil {
@@ -133,8 +130,7 @@ func (l *Ledger) MergeAndEmit(tick uint64, delta *Ledger) {
 
 		// Emit candles 
 		dsrc := l.EmitManager.AddSource(
-			fmt.Sprintf(
-				"%v <=> %v",
+			globals.GetExchangeName(
 				newEx.ReserveA.Symbol,
 				newEx.ReserveB.Symbol,
 			),

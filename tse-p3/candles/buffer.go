@@ -36,6 +36,7 @@ func (cb CandleBuffer) GetCandles() []Candle {
 	}
 
 	count = (cb.Head + cb.Size - cb.Tail) % cb.Size
+	//count = min(count, 40)
 	cs = make([]Candle, count)
 
 	for i = 0; i < count; i++ {

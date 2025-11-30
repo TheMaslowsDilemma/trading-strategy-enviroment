@@ -46,6 +46,24 @@ func NewSimulation() Simulation {
 		AmountB: globals.USDCurrencyAmount,
 		SymbolB: globals.USDSymbol,
 	}
+
+	sim.AddExchange(cped, 0)
+
+	cped = exchanges.CpeDescriptor {
+		AmountA: globals.TSECurrencyAmount,
+		SymbolA: "alpha",
+		AmountB: globals.USDCurrencyAmount,
+		SymbolB: globals.USDSymbol,
+	}
+	
+	sim.AddExchange(cped, 0)
+
+	cped = exchanges.CpeDescriptor {
+		AmountA: globals.TSECurrencyAmount,
+		SymbolA: "alpha",
+		AmountB: globals.TSECurrencyAmount,
+		SymbolB: globals.TSESymbol,
+	}
 	
 	sim.AddExchange(cped, 0)
 	sim.SecondaryLedger = ledger.Clone(*sim.PrimaryLedger)

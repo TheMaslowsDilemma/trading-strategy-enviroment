@@ -80,7 +80,7 @@ func (s *Simulation) GetPrice(symbol, inTermsOf string) (float64, error) {
 	return exg.SpotPriceB(), nil
 }
 
-func (s *Simulation) GetCandles(symbolA, symbolB string) []candles.Candle {
+func (s *Simulation) GetCandles(symbolA, symbolB string) ([]candles.Candle, string) {
 		var (
 		exkey	uint64
 		exaddr	ledger.Addr
@@ -94,10 +94,10 @@ func (s *Simulation) GetCandles(symbolA, symbolB string) []candles.Candle {
 
 
 	if exg.Auditer == nil {
-		return []candles.Candle{}
+		return []candles.Candle{}, ""
 	}
 	
-	return exg.Auditer.GetCandles()
+	return exg.Auditer.GetCandles(), exg.ReserveA.Symbol
 }
 
 func (s *Simulation) GetNetworth(traderKey uint64) (float64, error) {

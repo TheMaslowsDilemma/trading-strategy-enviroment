@@ -12,5 +12,9 @@ func Rand64() uint64 {
 
 
 func GetExchangeKey(s1, s2 string) uint64 {
-	return xxhash.Sum64([]byte(fmt.Sprintf("%v:%v", s1, s2)))
+	return xxhash.Sum64([]byte(GetExchangeName(s1,s2)))
+}
+
+func GetExchangeName(s1, s2 string) string {
+	return fmt.Sprintf("%v:e:%v", s1, s2)
 }

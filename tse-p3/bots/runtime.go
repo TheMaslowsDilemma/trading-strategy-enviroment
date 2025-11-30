@@ -3,6 +3,7 @@ package bots
 import (
 	"fmt"
 	"time"
+	"math/rand"
 	"tse-p3/globals"
 	"tse-p3/candles"
 	"tse-p3/ledger"
@@ -12,7 +13,7 @@ import (
 	"github.com/holiman/uint256"
 )
 
-func (bot *Bot) Run(isCanceled *bool, candleProvider func(string, string) []candles.Candle, placeSwap func (botkey uint64, dscr txs.CpeSwapDescriptor), walletProvider func (ledger.Addr) (wallets.Wallet, error)) {
+func (bot *Bot) Run(isCanceled *bool, candleProvider func(string, string) ([]candles.Candle, string), placeSwap func (botkey uint64, dscr txs.CpeSwapDescriptor), walletProvider func (ledger.Addr) (wallets.Wallet, error)) {
 	var (
 		tick		uint64
 		cs 			[]candles.Candle
@@ -32,6 +33,11 @@ func (bot *Bot) Run(isCanceled *bool, candleProvider func(string, string) []cand
 
 	fmt.Printf("starting [%v] run\n", bot.Name)
 	for {
+
+		var sym_a  string
+		var sym_b string
+		var exg_primary string
+
 		if *isCanceled {
 			return
 		}
@@ -43,7 +49,15 @@ func (bot *Bot) Run(isCanceled *bool, candleProvider func(string, string) []cand
 			continue
 		}
 
-		cs = candleProvider(globals.USDSymbol, globals.TSESymbol)
+		sym_a, sym_b = get_exchange_symbols()
+		cs, exg_primary = candleProvider(sym_a, sym_b)
+
+		if sym_a != exg_primary {
+			tmp := sym_b
+			sym_b = sym_a
+			sym_a = tmp
+		}
+
 		decision, confidence = bot.Strategy.Decide(cs)
 
 		if decision == strategies.Hold {
@@ -51,11 +65,11 @@ func (bot *Bot) Run(isCanceled *bool, candleProvider func(string, string) []cand
 		}
 
 		if decision == strategies.Sell {
-			symbol_in	= globals.TSESymbol
-			symbol_out	= globals.USDSymbol
+			symbol_in	= sym_b
+			symbol_out	= sym_a
 		} else if decision == strategies.Buy {
-			symbol_in	= globals.USDSymbol
-			symbol_out	= globals.TSESymbol
+			symbol_in	= sym_a
+			symbol_out	= sym_b
 		}
 
 		waddr, exists = bot.Trader.GetWalletAddr(symbol_in)
@@ -67,7 +81,7 @@ func (bot *Bot) Run(isCanceled *bool, candleProvider func(string, string) []cand
 		wlt, err = walletProvider(waddr)
 		if err != nil {
 			fmt.Printf("bot failed to get wallet: %v\n", err)
-			return // EXIT EARLY -- CORRUPT BOT
+			continue // EXIT EARLY -- CORRUPT BOT
 		}
 
 		cnf_scaled = uint256.NewInt(uint64(confidence * globals.TokenScaleFactorf64))
@@ -85,5 +99,19 @@ func (bot *Bot) Run(isCanceled *bool, candleProvider func(string, string) []cand
 
 		placeSwap(bot.Id, dscr)
 	}
+}
+
+// TODO: create strategy to choose the exchange to trade on.
+func get_exchange_symbols() (string, string) {
+	var exchange_symbols []string = []string {
+		globals.USDSymbol,
+		globals.TSESymbol,
+		"alpha",
+	}
+
+	var token_a = rand.Uint32() % 3
+	var token_b = (rand.Uint32()  % 2 + token_a + 1) % 3
+
+	return exchange_symbols[token_a], exchange_symbols[token_b]
 }
 

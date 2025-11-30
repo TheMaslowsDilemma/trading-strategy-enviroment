@@ -49,8 +49,8 @@ func RegisterPOST(w http.ResponseWriter, r *http.Request) {
 
 	ctx = context.Background()
 	err = users.CreateUser(ctx, username, password, MainSimulation)
-	fmt.Println(err)
 	if err != nil {
+		fmt.Printf("Error while CreateUser: %v\n", err)
 		tmpl.ExecuteTemplate(w, "login.html", formData{
 			Title: "Register",
 			Error: "Username already taken or server error",
@@ -67,6 +67,7 @@ func LoginGET(w http.ResponseWriter, r *http.Request) {
 
 func LoginPOST(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
+		fmt.Printf("Error parsing form: %v\n", err)
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
@@ -76,12 +77,16 @@ func LoginPOST(w http.ResponseWriter, r *http.Request) {
 
 	ctx := context.Background()
 	user, err := users.GetUserByName(ctx, username)
+
 	if err != nil || !user.ComparePassword(password) {
+		fmt.Printf("Error while getting user, or invalid password: %v\n", err)
 		tmpl.ExecuteTemplate(w, "login.html", formData{Title: "Login", Error: "Invalid username or password"})
 		return
 	}
 
+
 	if err := sessions.Set(w, user.ID); err != nil {
+		fmt.Printf("Error setting session: %v\n", err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 		return
 	}
