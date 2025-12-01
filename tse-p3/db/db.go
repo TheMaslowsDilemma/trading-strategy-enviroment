@@ -19,7 +19,7 @@ func Init() {
 		pg_host	string
 		pg_pswd	string
 		pg_url	string
-		pg_ssl	string
+		connstr	string
 
 		config	*pgxpool.Config
 		err		error
@@ -30,28 +30,24 @@ func Init() {
 	pg_host = getEnv("DATABASE_HOST", "localhost")
 	pg_user = getEnv("DATABASE_USER", "admin")
 	pg_pswd = getEnv("DATABASE_PSWD", "postgres")
+
 	if pg_url == "" {
-
-		pg_ssl = "disable"
+		connstr = fmt.Sprintf(
+			"postgres://%s:%s@%s:%s/%s?sslmode=disable",
+			pg_user, pg_pswd, pg_host, pg_port, "trading-sim",
+		)
 	} else {
-		pg_ssl = "require"
-
-	}
-	pg_url = fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=%v",
-		pg_user, pg_pswd, pg_host, pg_port, "trading-sim", pg_ssl,
-	)
-	fmt.Println(pg_url)
-
-
-	if err = migrate.Run(pg_url); err != nil {
-		log.Fatalf("Miration Run failed: %v", err)
+		connstr = pg_url
 	}
 
-	config, err = pgxpool.ParseConfig(pg_url)
+	config, err = pgxpool.ParseConfig(connstr)
 	if err != nil {
 		log.Fatalf("Unable to parse connection string: %v", err)
 	}
+
+	// if err = migrate.Run(connstr); err != nil {
+	// 	log.Fatalf("Miration Run failed: %v", err)
+	// }
 
 	config.MaxConns = 25
 	config.MinConns = 5
