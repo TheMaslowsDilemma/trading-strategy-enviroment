@@ -17,7 +17,7 @@ let charting_state = {
 let ws    = null;                   // global ws reference so handlers can use it
 
 function main_handler() {
-	ws = new WebSocket('ws://' + location.host + '/ws');
+	ws = new WebSocket('wss://' + location.host + '/ws');
 
 	ws.onopen    = on_open_handler;
 	ws.onmessage = on_message_handler;
