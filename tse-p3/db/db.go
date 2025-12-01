@@ -35,7 +35,7 @@ func Init() {
 
 		connstr = fmt.Sprintf(
 			"postgres://%s:%s@%s:%s/%s?sslmode=disable",
-			pg_user, pg_pswd, pg_host, pg_port, pg_db,
+			pg_user, pg_pswd, pg_host, pg_port, "trading-sim",
 		)
 	} else {
 		connstr = pg_url
