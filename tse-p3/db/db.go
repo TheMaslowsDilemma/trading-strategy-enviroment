@@ -26,7 +26,7 @@ func Init() {
 		err		error
 	)
 
-	pg_url = getEnv("DATABASE_URL", "")
+	pg_url =  getEnv("DATABASE_URL", "")
 	pg_port = getEnv("DATABASE_PORT", "5432")
 	pg_host = getEnv("DATABASE_HOST", "localhost")
 	pg_user = getEnv("DATABASE_USER", "admin")
@@ -34,12 +34,13 @@ func Init() {
 	run_mgs = getEnv("RUN_MIGRATIONS", "")
 
 	if pg_url == "" {
+		// THIS is for LOCAL Dev
 		connstr = fmt.Sprintf(
 			"postgres://%s:%s@%s:%s/%s?sslmode=disable",
 			pg_user, pg_pswd, pg_host, pg_port, "trading-sim",
 		)
 	} else {
-		connstr = pg_url
+		connstr = buildMigrationURL(pg_url)
 	}
 
 	config, err = pgxpool.ParseConfig(connstr)
@@ -47,10 +48,8 @@ func Init() {
 		log.Fatalf("Unable to parse connection string: %v", err)
 	}
 
-	if run_mgs != "" {
-		if err = migrate.Run(connstr); err != nil {
-			log.Fatalf("Miration Run failed: %v", err)
-		}
+	if err = migrate.Run(connstr); err != nil {
+		log.Fatalf("Miration Run failed: %v", err)
 	}
 
 	config.MaxConns = 25
@@ -65,6 +64,27 @@ func Init() {
 	}
 
 	log.Println("Database pool initialized")
+}
+
+func buildMigrationURL(baseURL string) string {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		log.Fatalf("Failed to parse DATABASE_URL: %v", err)
+	}
+
+	adminUser := getEnv("DATABASE_ADMIN_USER", "")
+	adminPass := getEnv("DATABASE_ADMIN_PASS", "")
+
+	// Only override if both admin user and pass are set
+	if adminUser != "" && adminPass != "" {
+		u.User = url.UserPassword(adminUser, adminPass)
+		log.Printf("Using admin user '%s' for migrations", adminUser)
+	} else if adminUser != "" || adminPass != "" {
+		log.Println("Warning: Both DATABASE_ADMIN_USER and DATABASE_ADMIN_PASS must be set to override migration credentials")
+	}
+
+	// Reconstruct the URL
+	return u.String()
 }
 
 func getEnv(key, fallback string) string {
