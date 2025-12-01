@@ -20,6 +20,7 @@ func Init() {
 		pg_pswd	string
 		pg_url	string
 		connstr	string
+		run_mgs string
 
 		config	*pgxpool.Config
 		err		error
@@ -30,6 +31,7 @@ func Init() {
 	pg_host = getEnv("DATABASE_HOST", "localhost")
 	pg_user = getEnv("DATABASE_USER", "admin")
 	pg_pswd = getEnv("DATABASE_PSWD", "postgres")
+	run_mgs = getEnv("RUN_MIGRATIONS", "")
 
 	if pg_url == "" {
 		connstr = fmt.Sprintf(
@@ -45,9 +47,11 @@ func Init() {
 		log.Fatalf("Unable to parse connection string: %v", err)
 	}
 
-	// if err = migrate.Run(connstr); err != nil {
-	// 	log.Fatalf("Miration Run failed: %v", err)
-	// }
+	if run_mgs != "" {
+		if err = migrate.Run(connstr); err != nil {
+			log.Fatalf("Miration Run failed: %v", err)
+		}
+	}
 
 	config.MaxConns = 25
 	config.MinConns = 5
