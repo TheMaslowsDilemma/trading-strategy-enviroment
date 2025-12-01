@@ -34,7 +34,7 @@ func (sim *Simulation) InitializeTraders() {
 	go randbot.Run(&sim.CancelRequested, sim.GetCandles, sim.PlaceBotSwap, sim.GetWallet)
 	
 
-	for i := 0; i < 200; i++ {
+	for i := 0; i < 20; i++ {
 		short := 5 + rand.Intn(46)
 		long := short + 15 + rand.Intn(150)
 
