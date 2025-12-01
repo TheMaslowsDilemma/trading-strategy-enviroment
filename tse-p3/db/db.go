@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 	"tse-p3/db/migrate"
+	"net/url"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -20,7 +21,6 @@ func Init() {
 		pg_pswd	string
 		pg_url	string
 		connstr	string
-		run_mgs string
 
 		config	*pgxpool.Config
 		err		error
@@ -31,7 +31,6 @@ func Init() {
 	pg_host = getEnv("DATABASE_HOST", "localhost")
 	pg_user = getEnv("DATABASE_USER", "admin")
 	pg_pswd = getEnv("DATABASE_PSWD", "postgres")
-	run_mgs = getEnv("RUN_MIGRATIONS", "")
 
 	if pg_url == "" {
 		// THIS is for LOCAL Dev
