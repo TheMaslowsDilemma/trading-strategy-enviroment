@@ -43,8 +43,6 @@ func Init() {
         if err == nil {
             pg_url = string(decoded)
 			connstr = pg_url
-        } else {
-			log.Fatalf(err)
         }
 	}
 
