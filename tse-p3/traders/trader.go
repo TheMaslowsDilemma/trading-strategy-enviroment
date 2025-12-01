@@ -23,6 +23,14 @@ func CreateTrader(name string) *Trader {
 	}
 }
 
+func CreateTraderWithId(name string, id uint64) *Trader {
+	return &Trader {
+		Id: id,
+		Name: name,
+		Wallets: make(map[uint64] ledger.Addr),
+	}
+}
+
 func (t Trader) GetWalletAddr(sym string) (ledger.Addr, bool) {
 	var (
 		key		uint64

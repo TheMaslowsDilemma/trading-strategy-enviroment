@@ -17,5 +17,10 @@ func main() {
     website.Initialize(&s)
 	(&s).InitializeTraders()
 	go (&s).Run()
+
+	port := os.Getenv("PORT")
+	if port == "" {
+	    port = "8080"
+	}
 	website.Begin(":8080")
 }

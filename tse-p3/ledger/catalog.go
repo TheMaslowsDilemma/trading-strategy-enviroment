@@ -50,6 +50,32 @@ func (dc *data_catalog) AddSource(ds *data_source) {
 	}
 }
 
+func (dc *data_catalog) RemoveSource(ds *data_source) {
+	var gs []string
+	var gram string
+
+	if ds.Name == "" {
+		return
+	}
+
+	gs = grammarize(ds.Name)
+	for _, gram = range gs {
+		if sources, exists := dc.Grambank[gram]; exists {
+			var indexToRemove int = -1
+			for i, source := range sources {
+				if source == ds {
+					indexToRemove = i
+					break
+				}
+			}
+			
+			if indexToRemove != -1 {
+				dc.Grambank[gram] = append(sources[:indexToRemove], sources[indexToRemove+1:]...)
+			}
+		}
+	}
+}
+
 // -------------- Search Functionality --------------- //
 type SearchResult struct {
 	Name	string		`json:"name"`

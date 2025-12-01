@@ -34,7 +34,6 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
-	defer client.Close()
 
 
 	client, err = init_ws_client(ctx, conn)
@@ -59,6 +58,7 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 						fmt.Printf("websocket closed normally: %v\n", err)
 						break message_loop
 				}
+				break message_loop
 			}
 
 			// If we get here, it's either an unexpected close code or a non-CloseError
@@ -76,4 +76,5 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("client failed to handle incoming: %v\n", err)
 		}
 	}
+	client.Close()
 }

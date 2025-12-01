@@ -9,9 +9,9 @@ import (
 	"tse-p3/db"
 	"tse-p3/globals"
 	"tse-p3/ledger"
-	"tse-p3/simulation"
 	"tse-p3/traders"
 	"tse-p3/wallets"
+	"tse-p3/simulation"
 
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -21,33 +21,20 @@ type User struct {
 	ID				int64	`json:"id"`
 	Name			string	`json:"name"`
 	TraderID		uint64	`json:"trader_id"`
-	PasswordHash	string	`json:"-"` // this wont be marshalled
+	PasswordHash	string	`json:"-"`
 	Active			bool	`json:"active"`
 }
 
 func CreateUser(ctx context.Context, username, password string, sim *simulation.Simulation) error {
 	var (
 		hash		[]byte
-		trader		*traders.Trader
-		wlt_dsc		wallets.WalletDescriptor
-		wlt_addr	ledger.Addr
+		trdr_id		uint64
 		query		string
 		userID		int64
 		err			error
 	)
-
-	trader = traders.CreateTrader(username)
-
-	wlt_dsc = wallets.WalletDescriptor{
-		Name:	fmt.Sprintf("%v:w:%v", username, globals.USDSymbol),
-		Amount:	globals.UserStartingBalance,
-		Symbol:	globals.USDSymbol,
-	}
-
-	wlt_addr = sim.AddWallet(wlt_dsc)
-	trader.AddWallet(wlt_dsc.Symbol, wlt_addr)
-	sim.AddTrader(trader)
-
+		
+	trdr_id = globals.Rand64()
 
 	hash, err = bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -55,16 +42,84 @@ func CreateUser(ctx context.Context, username, password string, sim *simulation.
 	}
 
 	query = `
-		INSERT INTO users (name, password_hash, trader_id)
-		VALUES ($1, $2, $3)
+		INSERT INTO users (name, password_hash, trader_id, active)
+		VALUES ($1, $2, $3, false)
 		RETURNING id`
 
-	err = db.Pool.QueryRow(ctx, query, username, string(hash), strconv.FormatUint(trader.Id, 10)).Scan(&userID)
+	err = db.Pool.QueryRow(ctx, query, username, string(hash), strconv.FormatUint(trdr_id, 10)).Scan(&userID)
 	if err != nil {
 		return err
 	}
 
+	err = wallets.CreateOrUpdateUserWallet(ctx, globals.USDSymbol, strconv.FormatUint(globals.UserStartingBalance, 10), userID)
+	if err != nil {
+		return err
+	}
 	return nil
+}
+
+func (user User) BeginUserSession(ctx context.Context, s *simulation.Simulation) error {
+	var (
+		trader		*traders.Trader
+		wlt_addr	ledger.Addr
+		wds			[]wallets.WalletDescriptor
+		wd			wallets.WalletDescriptor
+		err			error
+	)
+
+	wds, err = wallets.GetUserWallets(ctx, user.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get user wallet: %v", err)
+	}
+
+	trader = traders.CreateTraderWithId(user.Name, user.TraderID)
+	s.AddTrader(trader)
+
+	for _, wd = range wds {
+		wlt_name := fmt.Sprintf("%v:w:%v", user.Name, wd.Symbol)
+		wd.Name = wlt_name
+		wlt_addr = s.AddWallet(wd)
+		trader.AddWallet(wd.Symbol, wlt_addr)
+	}
+
+	return nil
+}
+
+// THIS could be re thought... were locking up the sim while doing this...
+func (user User) CleanUserSession(ctx context.Context, s *simulation.Simulation) {
+	var (
+		trader		*traders.Trader
+		wlt_addr	ledger.Addr
+		wlt			wallets.Wallet
+		err			error
+	)
+	trader = s.Traders[user.TraderID]
+	if trader == nil {
+		return
+	}
+
+	s.PrimaryLock.Lock()
+	s.SecondaryLock.Lock()
+	for _, wlt_addr = range trader.Wallets {
+		wlt = s.PrimaryLedger.GetWallet(wlt_addr)
+		err = wallets.CreateOrUpdateUserWallet(
+			ctx, 
+			wlt.Reserve.Symbol,
+			wlt.Reserve.Amount.String(), 
+			user.ID,
+		)
+		if err != nil {
+			fmt.Printf("failed to update wallet for '%v': %v\n", user.Name, err)
+		}
+		s.PrimaryLedger.RemoveWallet(wlt_addr)
+		s.SecondaryLedger.RemoveWallet(wlt_addr)
+		s.PrimaryLedger.RemoveWallet(wlt_addr)
+	}
+
+	s.PrimaryLock.Unlock()
+	s.SecondaryLock.Unlock()
+
+	delete(s.Traders, user.TraderID)
 }
 
 func GetUserByName(ctx context.Context, name string) (User, error) {

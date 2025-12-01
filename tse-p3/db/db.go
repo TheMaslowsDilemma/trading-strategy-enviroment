@@ -14,23 +14,33 @@ var Pool *pgxpool.Pool
 
 func Init() {
 	var (
+		pg_port string
 		pg_user	string
 		pg_host	string
 		pg_pswd	string
+		pg_url	string
 		connstr	string
+
 		config	*pgxpool.Config
 		err		error
 	)
 
-	pg_host = getEnv("DATABASE_HOST", "localhost")
-	pg_user = getEnv("DATABASE_USER", "admin")
-	pg_pswd = getEnv("DATABASE_PSWD", "postgres")
-	
-	connstr = fmt.Sprintf("postgres://%s:%s@%s:5432/trading-sim?sslmode=disable", pg_user, pg_pswd, pg_host)
+	pg_url = getEnv("DATABASE_URL", "")
 
-	if err != nil {
-		log.Fatalf("Failed to resolve migrations path: %v", err)
+	if pg_url == "" {
+		pg_port = getEnv("DATABASE_PORT", "5432")
+		pg_host = getEnv("DATABASE_HOST", "localhost")
+		pg_user = getEnv("DATABASE_USER", "admin")
+		pg_pswd = getEnv("DATABASE_PSWD", "postgres")
+
+		connstr = fmt.Sprintf(
+			"postgres://%s:%s@%s:%s/%s?sslmode=disable",
+			pg_user, pg_pswd, pg_host, pg_port, pg_db,
+		)
+	} else {
+		connstr = pg_url
 	}
+
 
 	if err = migrate.Run(connstr); err != nil {
 		log.Fatalf("Miration Run failed: %v", err)

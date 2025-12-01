@@ -24,6 +24,7 @@ a, button, input {
   padding: var(--pad);
   border: var(--border);
   border-radius: var(--radius);
+  margin: var(--pad);
 }
 
 a {
@@ -62,6 +63,14 @@ a:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* ===== MAIN TWO-COLUMN LAYOUT ===== */

@@ -59,6 +59,13 @@ func (l *Ledger) AddWallet(wd wallets.WalletDescriptor) Addr {
 	return addr
 }
 
+func (l *Ledger) RemoveWallet(addr Addr) {
+	if l.EmitManager != nil {
+		l.EmitManager.RemoveSource(addr, Wallet_t)
+	}
+	delete(l.Wallets, addr)
+}
+
 func (l *Ledger) AddConstantProductExchange(cd exchanges.CpeDescriptor, tick uint64) Addr {
 	addr := Addr(globals.Rand64())
 	cpe := exchanges.CreateConstantProductExchange(cd, tick)
@@ -69,6 +76,13 @@ func (l *Ledger) AddConstantProductExchange(cd exchanges.CpeDescriptor, tick uin
 		l.EmitManager.AddSource(name, addr, Exchange_t)
 	}
 	return addr
+}
+
+func (l *Ledger) RemoveExchange(addr Addr) {
+	if l.EmitManager != nil {
+		l.EmitManager.RemoveSource(addr, Exchange_t)
+	}
+	delete(l.Wallets, addr)
 }
 
 func (l *Ledger) SearchSources(name string) []SearchResult {

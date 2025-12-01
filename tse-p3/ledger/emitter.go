@@ -51,9 +51,6 @@ func (em *EmitterManager) AddSource(name string, addr Addr, etype EntityType) *d
 		return dsrc // already exists
 	}
 
-	if etype == Wallet_t {
-		fmt.Printf("adding wallet %v %v\n", name, addr)
-	}
 	dsrc := new_data_source(name, addr, etype)
 	m[addr] = dsrc
 	em.DataCatalog.AddSource(dsrc)
@@ -61,6 +58,32 @@ func (em *EmitterManager) AddSource(name string, addr Addr, etype EntityType) *d
 	go dsrc.Run() // start the data source routine
 
 	return dsrc
+}
+
+func (em *EmitterManager) RemoveSource(addr Addr, etype EntityType) {
+	var (
+		ds	*data_source
+		ok	bool
+		m 	map[Addr]*data_source
+	)
+
+	em.mu.Lock()
+	defer em.mu.Unlock()
+
+	switch etype {
+	case Wallet_t:
+		m = em.Wallets
+	case Exchange_t:
+		m = em.Exchanges
+	default:
+		return
+	}
+	
+	if ds, ok = m[addr]; ok {
+		ds.Stop()
+		em.DataCatalog.RemoveSource(ds)
+		delete(m, addr)
+	}
 }
 
 // AddSubscriber attaches a WebSocket connection to a source (creates source if needed)

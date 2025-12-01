@@ -31,15 +31,13 @@ func (client *ws_client) Close() {
 	client.Healthy = false
 	client.Cancel <- true
 
+	fmt.Println("SETTING USER ACTIVITY FALSE")
 	err = users.SetUserActivity(client.ctx, client.user.ID, false)
 	if err != nil {
 		fmt.Printf("ws client failed to update user '%v' activity: %v", client.user.ID, err)
 	}
 
-
-	// tell the simulation to 
-	// 1. save updates to wallet amounts for the client into pg
-	// 2. remove wallet, trader, subscribers from simulation
+	client.user.CleanUserSession(client.ctx, MainSimulation)
 }
 
 func init_ws_client(ctx context.Context, wsc *websocket.Conn) (*ws_client, error) {
@@ -58,19 +56,18 @@ func init_ws_client(ctx context.Context, wsc *websocket.Conn) (*ws_client, error
 		return nil, fmt.Errorf("context has no 'user'")
 	}
 
+	
 	if !usr.Active {
+
 		err = users.SetUserActivity(ctx, usr.ID, true)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update user activity: %v", err)
 		}
-
-		// TODO:
-		// go and turn on its trader / wallets etc.
-		// this means those wallets etc. would need to
-		// be persisted somewhere so that at this point
-		// they could start with the same balances
+		
+		usr.BeginUserSession(ctx, MainSimulation)
+	} else {
+		fmt.Println("user was ALREADY ACTIVE")
 	}
-
 
 	return &ws_client {
 		conn: wsc,
@@ -115,7 +112,7 @@ func (client *ws_client) WriterLoop() {
 	for {
 		select {
 			case _ = <-client.Cancel:
-				fmt.Printf("stopping client '%v' writer loop", client.user.Name)
+				fmt.Printf("stopping client '%v' writer loop\n", client.user.Name)
 				return
 			case outmsg, ok = <-client.MsgOut:
 				if !ok {
