@@ -19,34 +19,36 @@ func Init() {
 		pg_host	string
 		pg_pswd	string
 		pg_url	string
-		connstr	string
+		pg_ssl	string
 
 		config	*pgxpool.Config
 		err		error
 	)
 
 	pg_url = getEnv("DATABASE_URL", "")
-
+	pg_port = getEnv("DATABASE_PORT", "5432")
+	pg_host = getEnv("DATABASE_HOST", "localhost")
+	pg_user = getEnv("DATABASE_USER", "admin")
+	pg_pswd = getEnv("DATABASE_PSWD", "postgres")
 	if pg_url == "" {
-		pg_port = getEnv("DATABASE_PORT", "5432")
-		pg_host = getEnv("DATABASE_HOST", "localhost")
-		pg_user = getEnv("DATABASE_USER", "admin")
-		pg_pswd = getEnv("DATABASE_PSWD", "postgres")
 
-		connstr = fmt.Sprintf(
-			"postgres://%s:%s@%s:%s/%s?sslmode=disable",
-			pg_user, pg_pswd, pg_host, pg_port, "trading-sim",
-		)
+		pg_ssl = "disable"
 	} else {
-		connstr = pg_url
+		pg_ssl = "require"
+
 	}
+	pg_url = fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=%v",
+		pg_user, pg_pswd, pg_host, pg_port, "trading-sim", pg_ssl,
+	)
+	fmt.Println(pg_url)
 
 
-	if err = migrate.Run(connstr); err != nil {
+	if err = migrate.Run(pg_url); err != nil {
 		log.Fatalf("Miration Run failed: %v", err)
 	}
 
-	config, err = pgxpool.ParseConfig(connstr)
+	config, err = pgxpool.ParseConfig(pg_url)
 	if err != nil {
 		log.Fatalf("Unable to parse connection string: %v", err)
 	}
