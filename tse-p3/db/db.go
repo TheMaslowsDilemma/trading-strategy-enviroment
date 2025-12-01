@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
@@ -39,13 +38,7 @@ func Init() {
 			pg_user, pg_pswd, pg_host, pg_port, "trading-sim",
 		)
 	} else {
-		fmt.Printf("raw url: %v\n", pg_url)
-		decoded, err := base64.StdEncoding.DecodeString(pg_url)
-        if err == nil {
-            pg_url = string(decoded)
-			fmt.Println("decoded url: %v\n", pg_url)
-			connstr = pg_url
-        }
+		connstr = pg_url
 	}
 
 
